@@ -13,7 +13,7 @@ using SafeTestsets
         include("test_quantum_system.jl")
     end
 
-    @safetestset "Hartree-Fock" begin
-        include("test_hartreefock.jl")
+    @safetestset "Hartree-Fock (real space)" begin
+        include("test_hartreefock_real.jl")
     end
 end

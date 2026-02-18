@@ -116,6 +116,65 @@ end
     end
 
     @testset "Error handling" begin
-        @test_throws ErrorException build_U_matrix(dofs, Operators[], dofs.blocks)
+        @test_throws ErrorException build_U_matrix(dofs, Operators[])
     end
+end
+
+@testset "solve_hf — 2×4 Hubbard benchmark" begin
+    # Replicate the uhfr.py benchmark: 2×4 Hubbard model at half-filling
+    # Expected: total energy ≈ -3.408, converged within ~50 iterations
+    Nsite = 8
+    Ncond = 8
+    U_strength = 8.0
+    t_hopping = -1.0
+
+    dofs = SystemDofs([Dof(:site, Nsite), Dof(:spin, 2)], sortrule = [[2], 1])
+
+    # Nearest-neighbour bonds from UHFr/trans.def
+    nn_bonds = [
+        Bond([QN(site=1), QN(site=3)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=1), QN(site=5)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=1), QN(site=7)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=1), QN(site=8)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=2), QN(site=3)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=2), QN(site=5)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=2), QN(site=7)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=2), QN(site=8)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=3), QN(site=4)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=3), QN(site=6)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=4), QN(site=5)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=4), QN(site=7)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=4), QN(site=8)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=5), QN(site=6)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=6), QN(site=7)], [[0.0, 0.0], [0.0, 0.0]]),
+        Bond([QN(site=6), QN(site=8)], [[0.0, 0.0], [0.0, 0.0]]),
+    ]
+    onsite_bonds = [Bond([QN(site=i)], [[0.0, 0.0]]) for i in 1:Nsite]
+
+    t_ops = generate_onebody(dofs, nn_bonds,
+        (delta, qn1, qn2) -> qn1.spin == qn2.spin ? t_hopping : 0.0,
+        hc = true)
+
+    U_ops = generate_twobody(dofs, onsite_bonds,
+        (delta, qn1, qn2, qn3, qn4) ->
+            (qn1.site == qn2.site == qn3.site == qn4.site) &&
+            (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? U_strength : 0.0,
+        order = (cdag, 1, c, 1, cdag, 1, c, 1))
+
+    result = solve_hf(
+        dofs,
+        vcat(t_ops, U_ops),
+        [Ncond ÷ 2, Ncond ÷ 2],
+        temperature = 0.0,
+        max_iter = 1000,
+        n_restarts = 1,
+        tol = 1e-8,
+        mix_alpha = 0.5,
+        verbose = false,
+        seed = 123456789,
+    )
+
+    @test result.converged
+    @test result.energies.total ≈ -3.408 atol=1e-2
+    @test result.residual < 1e-6
 end
