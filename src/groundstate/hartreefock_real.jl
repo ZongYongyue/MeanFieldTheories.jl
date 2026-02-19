@@ -384,6 +384,9 @@ function _run_scf(
             break
         end
 
+        # Scheduled mixing: start conservative (α×0.3), ramp up to full mix_alpha by iter 15
+        α_eff = iter <= 5 ? mix_alpha * 0.3 : (iter <= 15 ? mix_alpha * 0.6 : mix_alpha)
+
         if diis_m > 0
             push!(G_hist, copy(G_new))
             push!(R_hist, G_new - G_old)
@@ -392,9 +395,9 @@ function _run_scf(
                 popfirst!(R_hist)
             end
             G = length(G_hist) >= 2 ? _diis_extrapolate(G_hist, R_hist) :
-                                      (1 - mix_alpha) .* G_old .+ mix_alpha .* G_new
+                                      (1 - α_eff) .* G_old .+ α_eff .* G_new
         else
-            @. G = (1 - mix_alpha) * G_old + mix_alpha * G_new
+            @. G = (1 - α_eff) * G_old + α_eff * G_new
         end
 
         t0 = Int64(time_ns())
