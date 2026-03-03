@@ -2,7 +2,7 @@
 
 # MeanFieldTheories.jl
 
-**MeanFieldTheories.jl** is a Julia package for studying quantum many-body systems using the single-mode approximation (SMA) method. It provides a complete workflow from constructing many-body Hamiltonians to calculating collective excitations such as magnons, excitons and so on.
+**MeanFieldTheories.jl** is a Julia package for studying quantum many-body systems using mean-field theory and related methods. It provides a complete workflow from constructing many-body Hamiltonians to obtaining self-consistent ground states and calculating collective excitation spectra, covering methods such as Hartree-Fock (HF), the Random Phase Approximation (RPA), and the Single-Mode Approximation (SMA).
 
 ## Overview
 
@@ -16,39 +16,6 @@ This workflow follows the standard approach used in modern condensed matter phys
 
 See documents: https://zongyongyue.github.io/MeanFieldTheories.jl
 
-## The Single-Mode Approximation Method
-
-The single-mode approximation, introduced by Feynman (1954) for superfluid helium, is a powerful technique for studying collective excitations in interacting quantum systems. The key idea is to construct momentum-dependent operators that create elementary excitations from the ground state:
-
-```
-|k⟩ = Q†_k |Ψ₀⟩
-```
-
-where `Q†_k` is a collective operator (e.g., spin-flip operator for magnons) and `|Ψ₀⟩` is the Hartree-Fock ground state. The excitation energies are obtained by solving the eigenvalue problem in the subspace of single-particle-hole excitations, often combined with the Random Phase Approximation (RPA) to include correlation effects beyond mean-field.
-
-### Physical Applications
-
-This approach is particularly useful for calculating:
-
-- **Magnon spectra** in magnetic systems (spin waves)
-- **Exciton spectra** in semiconductors and insulators
-- **Plasmon spectra** in metallic systems
-- **Collective modes** in topological materials
-
-For example, in the context of twisted bilayer MoTe₂, the workflow proceeds as:
-- Single-particle Hamiltonian (tight-binding model with spin-orbit coupling)
-- Mean-field calculation (Hartree-Fock self-consistency)
-- Magnon spectrum (RPA excitations from the magnetic ground state)
-
-## Key Features
-
-- **Flexible quantum system definitions** with arbitrary degrees of freedom
-- **Lattice structures** supporting square, honeycomb, triangular, kagome, and custom geometries
-- **Symbolic operator algebra** with automatic fermionic anticommutation
-- **High-level term generators** for hopping, Coulomb, Hund's coupling, exchange, pair hopping, and Ising interactions
-- **Matrix and tensor builders** for efficient numerical calculations
-- **Hartree-Fock solver** for ground and excited states
-- **RPA/TDHF methods** for collective excitations
 
 ## Installation
 
@@ -61,7 +28,7 @@ Or for development:
 
 ```julia
 using Pkg
-Pkg.develop(url="https://github.com/zongyy/MeanFieldTheories.jl")
+Pkg.develop(url="https://github.com/ZongYongyue/MeanFieldTheories.jl")
 ```
 
 ## Quick Start
@@ -105,17 +72,17 @@ Depth = 2
 If you use this package in your research, please cite:
 
 ```bibtex
-@software{singlemodeapproximation,
+@software{meanfieldtheories,
   author = {Yong-Yue Zong},
   title = {MeanFieldTheories.jl: A Julia package for quantum many-body systems},
   year = {2025},
-  url = {https://github.com/zongyy/MeanFieldTheories.jl}
+  url = {https://github.com/ZongYongyue/MeanFieldTheories.jl}
 }
 ```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests on [GitHub](https://github.com/zongyy/MeanFieldTheories.jl).
+Contributions are welcome! Please feel free to submit issues or pull requests on [GitHub](https://github.com/ZongYongyue/MeanFieldTheories.jl).
 
 ## License
 

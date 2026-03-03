@@ -3,12 +3,13 @@ using MeanFieldTheories
 
 makedocs(;
     modules=[MeanFieldTheories],
-    authors="zongyy",
-    repo="https://github.com/zongyy/MeanFieldTheories.jl/blob/{commit}{path}#{line}",
+    authors="Yong-Yue Zong",
+    repo="https://github.com/ZongYongyue/MeanFieldTheories.jl/blob/{commit}{path}#{line}",
     sitename="MeanFieldTheories.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://zongyy.github.io/MeanFieldTheories.jl",
+        canonical="https://ZongYongyue.github.io/MeanFieldTheories.jl",
+        repolink="https://github.com/ZongYongyue/MeanFieldTheories.jl",
         edit_link="main",
         assets=String[],
     ),
