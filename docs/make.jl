@@ -12,6 +12,7 @@ makedocs(;
         repolink="https://github.com/ZongYongyue/MeanFieldTheories.jl",
         edit_link="main",
         assets=String[],
+        logo="assets/logo.png",
     ),
     pages=[
         "Home" => "index.md",
