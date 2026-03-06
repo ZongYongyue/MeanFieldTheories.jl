@@ -113,8 +113,8 @@ where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$ is fixed by mo
 
 For a ground state that preserves discrete translational symmetry, the single-particle one-body Green's function (density matrix) is diagonal in momentum space:
 
-$$\langle c^\dagger_{\mathbf{k}\alpha}\,c_{\mathbf{k}'\beta}\rangle
-= \delta_{\mathbf{k},\mathbf{k}'}\,G^{\alpha\beta}(\mathbf{k})$$
+$$\langle c^\dagger_{\mathbf{k}a}\,c_{\mathbf{k}'b}\rangle
+= \delta_{\mathbf{k},\mathbf{k}'}\,G^{ab}(\mathbf{k})$$
 
 States at different $\mathbf{k}$ points are uncorrelated. If translational symmetry is spontaneously broken (e.g., antiferromagnetic order, charge density wave), the magnetic unit cell must be adopted as the new unit cell and $\mathbf{k}$ redefined in the corresponding Brillouin zone.
 
@@ -137,7 +137,7 @@ The Hartree terms contract "same-side" operator pairs ($\mathbf{r}_1$ side: $1,2
 
 #### 3.3 Momentum Constraints
 
-Using $\langle c^\dagger_{\mathbf{k}\alpha}c_{\mathbf{k}'\beta}\rangle = \delta_{\mathbf{k},\mathbf{k}'}G^{\alpha\beta}(\mathbf{k})$, each contraction under the momentum conservation constraint $\mathbf{k}_1+\mathbf{k}_3 = \mathbf{k}_2+\mathbf{k}_4$ yields the following:
+Using $\langle c^\dagger_{\mathbf{k}a}c_{\mathbf{k}'b}\rangle = \delta_{\mathbf{k},\mathbf{k}'}G^{ab}(\mathbf{k})$, each contraction under the momentum conservation constraint $\mathbf{k}_1+\mathbf{k}_3 = \mathbf{k}_2+\mathbf{k}_4$ yields the following:
 
 | Contracted pair | Channel | Constraint | Remaining bilinear |
 |:------:|:--:|:--------:|:----------:|
@@ -146,7 +146,7 @@ Using $\langle c^\dagger_{\mathbf{k}\alpha}c_{\mathbf{k}'\beta}\rangle = \delta_
 | $(c^\dagger_{\mathbf{k}_1 a},\,c_{\mathbf{k}_4 d})$ | Fock | $\mathbf{k}_1=\mathbf{k}_4=\mathbf{k}$, $\mathbf{k}_2=\mathbf{k}_3=\mathbf{q}$ | $-c^\dagger_{\mathbf{q}c}c_{\mathbf{q}b}$ |
 | $(c^\dagger_{\mathbf{k}_3 c},\,c_{\mathbf{k}_2 b})$ | Fock | $\mathbf{k}_2=\mathbf{k}_3=\mathbf{k}$, $\mathbf{k}_1=\mathbf{k}_4=\mathbf{q}$ | $-c^\dagger_{\mathbf{q}a}c_{\mathbf{q}d}$ |
 
-Each contraction reduces the four-operator product to a bilinear $c^\dagger_{\mathbf{q}\alpha}c_{\mathbf{q}\beta}$ at momentum $\mathbf{q}$, reflecting the $k$-diagonal structure of the effective Hamiltonian in a translationally symmetric ground state.
+Each contraction reduces the four-operator product to a bilinear $c^\dagger_{\mathbf{q}a}c_{\mathbf{q}b}$ at momentum $\mathbf{q}$, reflecting the $k$-diagonal structure of the effective Hamiltonian in a translationally symmetric ground state.
 
 ---
 
@@ -154,25 +154,25 @@ Each contraction reduces the four-operator product to a bilinear $c^\dagger_{\ma
 
 Substituting all contractions back into $H_{\text{int}}$, the mean-field interaction takes the form
 
-$$H_{\text{MF}} = \sum_{\mathbf{q}}\sum_{\alpha\beta} \Sigma^{\alpha\beta}(\mathbf{q})\,c^\dagger_{\mathbf{q}\alpha}c_{\mathbf{q}\beta}$$
+$$H_{\text{MF}} = \sum_{\mathbf{q}}\sum_{ab} \Sigma^{ab}(\mathbf{q})\,c^\dagger_{\mathbf{q}a}c_{\mathbf{q}b}$$
 
-Collecting contributions from all four contraction channels (relabeling dummy indices), the **Hartree-Fock self-energy** is
+Collecting contributions from all four contraction channels (tracing through §3.3 with $a,b$ as the free output indices of $\Sigma^{ab}$ and $c,d$ as dummy summation indices), the **Hartree-Fock self-energy** is
 
-$$\boxed{\Sigma^{\alpha\beta}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{\mu\nu}
+$$\boxed{\Sigma^{ab}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{cd}
 \Bigl[
 \underbrace{
-\widetilde{V}^{\mu\nu\alpha\beta}(\mathbf{k},\mathbf{k},\mathbf{q})
-+\widetilde{V}^{\alpha\beta\mu\nu}(\mathbf{q},\mathbf{q},\mathbf{k})
+\widetilde{V}^{cdab}(\mathbf{k},\mathbf{k},\mathbf{q})
++\widetilde{V}^{abcd}(\mathbf{q},\mathbf{q},\mathbf{k})
 }_{\text{Hartree}}
 \underbrace{
--\widetilde{V}^{\mu\beta\alpha\nu}(\mathbf{k},\mathbf{q},\mathbf{q})
--\widetilde{V}^{\alpha\nu\mu\beta}(\mathbf{q},\mathbf{k},\mathbf{k})
+-\widetilde{V}^{cbad}(\mathbf{k},\mathbf{q},\mathbf{q})
+-\widetilde{V}^{adcb}(\mathbf{q},\mathbf{k},\mathbf{k})
 }_{\text{Fock}}
-\Bigr]G^{\mu\nu}(\mathbf{k})}$$
+\Bigr]G^{cd}(\mathbf{k})}$$
 
 where:
-- **Hartree terms**: from same-side contractions; the three-momentum kernel is evaluated with the first two or last two momentum slots equal ($\mathbf{k},\mathbf{k}$ or $\mathbf{q},\mathbf{q}$), and summed over the one-body Green's function $G^{\mu\nu}(\mathbf{k})$;
-- **Fock terms**: from cross-side contractions; the kernel is evaluated with the last two or first and third momentum slots equal, carrying a minus sign.
+- **Hartree terms**: from same-side contractions; the kernel is evaluated with the first two or last two momentum slots equal ($\mathbf{k},\mathbf{k}$ or $\mathbf{q},\mathbf{q}$), and contracted with $G^{cd}(\mathbf{k})$. The index order $cdab$ (H1) and $abcd$ (H2) follows directly from which pair is contracted and which remains.
+- **Fock terms**: from cross-side contractions; the kernel is evaluated with mixed momentum slots, carrying a minus sign. The index order $cbad$ (F1) and $adcb$ (F2) arises because the cross contraction swaps which creation/annihilation index is "free" vs "summed".
 
 The two Hartree terms and two Fock terms are each related by the particle-exchange symmetry of the Coulomb integral $V^{abcd}_{ijkl} = V^{cdab}_{klij}$ (and exist independently in the fully general case).
 
@@ -182,7 +182,7 @@ The two Hartree terms and two Fock terms are each related by the particle-exchan
 
 The single-body hopping term (diagonal in $\mathbf{k}$ after Fourier transform)
 
-$$T^{\alpha\beta}(\mathbf{k}) = \sum_{\mathbf{r}} T^{\alpha\beta}(\mathbf{r})\,e^{i\mathbf{k}\cdot\mathbf{r}}$$
+$$T^{ab}(\mathbf{k}) = \sum_{\mathbf{r}} T^{ab}(\mathbf{r})\,e^{i\mathbf{k}\cdot\mathbf{r}}$$
 
 is combined with the mean-field self-energy to give the effective Hamiltonian at each $\mathbf{k}$ point:
 
@@ -192,10 +192,10 @@ The original four-body problem depending on three independent momenta is reduced
 
 Self-consistent iteration procedure:
 
-1. Initialize $G^{\alpha\beta}(\mathbf{k})$ (from the occupied states of $T(\mathbf{k})$ or randomly)
-2. Compute the self-energy $\Sigma(\mathbf{k})$ and construct $H^{\text{eff}}(\mathbf{k})$
+1. Initialize $G^{ab}(\mathbf{k})$ (from the occupied states of $T(\mathbf{k})$ or randomly)
+2. Compute the self-energy $\Sigma^{ab}(\mathbf{k})$ and construct $H^{\text{eff}}(\mathbf{k})$
 3. Diagonalize $H^{\text{eff}}(\mathbf{k})$: $H^{\text{eff}}(\mathbf{k})\,|\psi_{n\mathbf{k}}\rangle = \varepsilon_{n\mathbf{k}}\,|\psi_{n\mathbf{k}}\rangle$
-4. Update the one-body Green's function according to occupation numbers (step function at $T=0$ or Fermi-Dirac at finite temperature): $G^{\alpha\beta}(\mathbf{k}) = \sum_n f_{n\mathbf{k}}\,\psi^*_{n\alpha}(\mathbf{k})\,\psi_{n\beta}(\mathbf{k})$
+4. Update the one-body Green's function according to occupation numbers (step function at $T=0$ or Fermi-Dirac at finite temperature): $G^{ab}(\mathbf{k}) = \sum_n f_{n\mathbf{k}}\,\psi^*_{na}(\mathbf{k})\,\psi_{nb}(\mathbf{k})$
 5. Mix old and new $G(\mathbf{k})$, return to step 2, and repeat until convergence
 
 ---
@@ -226,26 +226,26 @@ The three-momentum kernel collapses to a single-momentum function:
 
 $$\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3) = \widetilde{W}^{abcd}(\mathbf{k}_2-\mathbf{k}_1)$$
 
-Substituting into the four self-energy channels:
+Substituting into the four self-energy channels (using $a,b$ as free indices and $c,d$ as summation indices, matching §4):
 
 | Channel | $\widetilde{V}$ at that channel | Result |
 |---|---|---|
-| Hartree 1: $\widetilde{V}^{\mu\nu\alpha\beta}(k,k,q)$ | $\widetilde{W}^{\mu\nu\alpha\beta}(\mathbf{0})$ | **k-independent** |
-| Hartree 2: $\widetilde{V}^{\alpha\beta\mu\nu}(q,q,k)$ | $\widetilde{W}^{\alpha\beta\mu\nu}(\mathbf{0})$ | **k-independent** |
-| Fock 1: $\widetilde{V}^{\mu\beta\alpha\nu}(k,q,q)$ | $\widetilde{W}^{\mu\beta\alpha\nu}(\mathbf{q}-\mathbf{k})$ | **convolution** in $\mathbf{k}$ |
-| Fock 2: $\widetilde{V}^{\alpha\nu\mu\beta}(q,k,k)$ | $\widetilde{W}^{\alpha\nu\mu\beta}(\mathbf{k}-\mathbf{q})$ | **convolution** in $\mathbf{k}$ |
+| Hartree 1: $\widetilde{V}^{cdab}(k,k,q)$ | $\widetilde{W}^{cdab}(\mathbf{0})$ | **k-independent** |
+| Hartree 2: $\widetilde{V}^{abcd}(q,q,k)$ | $\widetilde{W}^{abcd}(\mathbf{0})$ | **k-independent** |
+| Fock 1: $\widetilde{V}^{cbad}(k,q,q)$ | $\widetilde{W}^{cbad}(\mathbf{q}-\mathbf{k})$ | **convolution** in $\mathbf{k}$ |
+| Fock 2: $\widetilde{V}^{adcb}(q,k,k)$ | $\widetilde{W}^{adcb}(\mathbf{k}-\mathbf{q})$ | **cross-correlation** in $\mathbf{k}$ |
 
 **Hartree** ($\mathbf{q}$-independent):
 
-$$\Sigma_H^{\alpha\beta} = \frac{1}{2}\sum_{\mu\nu}\left[\widetilde{W}^{\mu\nu\alpha\beta}(\mathbf{0})+\widetilde{W}^{\alpha\beta\mu\nu}(\mathbf{0})\right]\bar{G}^{\mu\nu}$$
+$$\Sigma_H^{ab} = \frac{1}{2}\sum_{cd}\left[\widetilde{W}^{cdab}(\mathbf{0})+\widetilde{W}^{abcd}(\mathbf{0})\right]\bar{G}^{cd}$$
 
-where $\bar{G}^{\mu\nu} = \frac{1}{N}\sum_\mathbf{k}G^{\mu\nu}(\mathbf{k}) = G^{\mu\nu}(\mathbf{r}=\mathbf{0})$ is the on-site Green's function.
+where $\bar{G}^{cd} = \frac{1}{N}\sum_\mathbf{k}G^{cd}(\mathbf{k}) = G^{cd}(\mathbf{r}=\mathbf{0})$ is the on-site Green's function.
 
 **Fock** (FFT-acceleratable via convolution theorem):
 
-$$\Sigma_F^{\alpha\beta}(\mathbf{q}) = -\frac{1}{2}\mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\sum_{\mu\nu}\left[W^{\mu\beta\alpha\nu}(\mathbf{r})+W^{\alpha\nu\mu\beta}(-\mathbf{r})\right]G^{\mu\nu}(\mathbf{r})\right]$$
+$$\Sigma_F^{ab}(\mathbf{q}) = -\frac{1}{2}\mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\sum_{cd}\left[W^{cbad}(\mathbf{r})+W^{adcb}(-\mathbf{r})\right]G^{cd}(\mathbf{r})\right]$$
 
-Real-space kernel: Fock 1 contributes $W(\mathbf{r})\cdot G(\mathbf{r})$ (standard convolution); Fock 2 contributes $W(-\mathbf{r})\cdot G(\mathbf{r})$ (cross-correlation). They share the same FFT after summing the two $W$ kernels pointwise.
+Real-space kernel: Fock 1 contributes $W^{cbad}(\mathbf{r})\cdot G^{cd}(\mathbf{r})$ (standard convolution, argument $\mathbf{q}-\mathbf{k}$); Fock 2 contributes $W^{adcb}(-\mathbf{r})\cdot G^{cd}(\mathbf{r})$ (cross-correlation, argument $\mathbf{k}-\mathbf{q}$). They share the same FFT after summing the two $W$ kernels pointwise.
 
 ---
 
@@ -262,22 +262,22 @@ The channel structure is the complement of Case A:
 
 | Channel | $\widetilde{V}$ at that channel | Result |
 |---|---|---|
-| Hartree 1: $\widetilde{V}^{\mu\nu\alpha\beta}(k,k,q)$ | $\widetilde{W}^{\mu\nu\alpha\beta}(\mathbf{k}-\mathbf{q})$ | **convolution** in $\mathbf{k}$ |
-| Hartree 2: $\widetilde{V}^{\alpha\beta\mu\nu}(q,q,k)$ | $\widetilde{W}^{\alpha\beta\mu\nu}(\mathbf{q}-\mathbf{k})$ | **convolution** in $\mathbf{k}$ |
-| Fock 1: $\widetilde{V}^{\mu\beta\alpha\nu}(k,q,q)$ | $\widetilde{W}^{\mu\beta\alpha\nu}(\mathbf{0})$ | **k-independent** |
-| Fock 2: $\widetilde{V}^{\alpha\nu\mu\beta}(q,k,k)$ | $\widetilde{W}^{\alpha\nu\mu\beta}(\mathbf{0})$ | **k-independent** |
+| Hartree 1: $\widetilde{V}^{cdab}(k,k,q)$ | $\widetilde{W}^{cdab}(\mathbf{k}-\mathbf{q})$ | **cross-correlation** in $\mathbf{k}$ |
+| Hartree 2: $\widetilde{V}^{abcd}(q,q,k)$ | $\widetilde{W}^{abcd}(\mathbf{q}-\mathbf{k})$ | **convolution** in $\mathbf{k}$ |
+| Fock 1: $\widetilde{V}^{cbad}(k,q,q)$ | $\widetilde{W}^{cbad}(\mathbf{0})$ | **k-independent** |
+| Fock 2: $\widetilde{V}^{adcb}(q,k,k)$ | $\widetilde{W}^{adcb}(\mathbf{0})$ | **k-independent** |
 
 **Hartree** (FFT-acceleratable):
 
-$$\Sigma_H^{\alpha\beta}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{\mu\nu}\left[\widetilde{W}^{\mu\nu\alpha\beta}(\mathbf{k}-\mathbf{q})+\widetilde{W}^{\alpha\beta\mu\nu}(\mathbf{q}-\mathbf{k})\right]G^{\mu\nu}(\mathbf{k})$$
+$$\Sigma_H^{ab}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{cd}\left[\widetilde{W}^{cdab}(\mathbf{k}-\mathbf{q})+\widetilde{W}^{abcd}(\mathbf{q}-\mathbf{k})\right]G^{cd}(\mathbf{k})$$
 
-$$= \mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\frac{1}{2}\sum_{\mu\nu}\left[W^{\mu\nu\alpha\beta}(-\mathbf{r})+W^{\alpha\beta\mu\nu}(\mathbf{r})\right]G^{\mu\nu}(\mathbf{r})\right]$$
+$$= \mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\frac{1}{2}\sum_{cd}\left[W^{cdab}(-\mathbf{r})+W^{abcd}(\mathbf{r})\right]G^{cd}(\mathbf{r})\right]$$
 
-Real-space kernel: $\boldsymbol{W}(-\mathbf{r})\cdot\boldsymbol{G}(\mathbf{r})$.
+Real-space kernel: H1 gives $W^{cdab}(-\mathbf{r})\cdot G^{cd}(\mathbf{r})$ (cross-correlation, argument $\mathbf{k}-\mathbf{q}$); H2 gives $W^{abcd}(\mathbf{r})\cdot G^{cd}(\mathbf{r})$ (standard convolution, argument $\mathbf{q}-\mathbf{k}$).
 
 **Fock** ($\mathbf{q}$-independent):
 
-$$\Sigma_F^{\alpha\beta} = -\frac{1}{2}\sum_{\mu\nu}\left[\widetilde{W}^{\mu\beta\alpha\nu}(\mathbf{0})+\widetilde{W}^{\alpha\nu\mu\beta}(\mathbf{0})\right]\bar{G}^{\mu\nu}$$
+$$\Sigma_F^{ab} = -\frac{1}{2}\sum_{cd}\left[\widetilde{W}^{cbad}(\mathbf{0})+\widetilde{W}^{adcb}(\mathbf{0})\right]\bar{G}^{cd}$$
 
 ---
 
@@ -294,16 +294,16 @@ where the second equality uses momentum conservation $\mathbf{k}_1+\mathbf{k}_3=
 
 | Channel | $\widetilde{V}$ at that channel | Result |
 |---|---|---|
-| Hartree 1: $\widetilde{V}^{\mu\nu\alpha\beta}(k,k,q)$ | $\widetilde{W}^{\mu\nu\alpha\beta}(-(\mathbf{k}+\mathbf{q}))$ | **cross-correlation** in $\mathbf{k}$ |
-| Hartree 2: $\widetilde{V}^{\alpha\beta\mu\nu}(q,q,k)$ | $\widetilde{W}^{\alpha\beta\mu\nu}(-(\mathbf{q}+\mathbf{k}))$ | **cross-correlation** in $\mathbf{k}$ |
-| Fock 1: $\widetilde{V}^{\mu\beta\alpha\nu}(k,q,q)$ | $\widetilde{W}^{\mu\beta\alpha\nu}(-(\mathbf{k}+\mathbf{q}))$ | **cross-correlation** in $\mathbf{k}$ |
-| Fock 2: $\widetilde{V}^{\alpha\nu\mu\beta}(q,k,k)$ | $\widetilde{W}^{\alpha\nu\mu\beta}(-(\mathbf{q}+\mathbf{k}))$ | **cross-correlation** in $\mathbf{k}$ |
+| Hartree 1: $\widetilde{V}^{cdab}(k,k,q)$ | $\widetilde{W}^{cdab}(-(\mathbf{k}+\mathbf{q}))$ | **cross-correlation** in $\mathbf{k}$ |
+| Hartree 2: $\widetilde{V}^{abcd}(q,q,k)$ | $\widetilde{W}^{abcd}(-(\mathbf{q}+\mathbf{k}))$ | **cross-correlation** in $\mathbf{k}$ |
+| Fock 1: $\widetilde{V}^{cbad}(k,q,q)$ | $\widetilde{W}^{cbad}(-(\mathbf{k}+\mathbf{q}))$ | **cross-correlation** in $\mathbf{k}$ |
+| Fock 2: $\widetilde{V}^{adcb}(q,k,k)$ | $\widetilde{W}^{adcb}(-(\mathbf{q}+\mathbf{k}))$ | **cross-correlation** in $\mathbf{k}$ |
 
 The full self-energy is:
 
-$$\Sigma^{\alpha\beta}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{\mu\nu}
-\left[\widetilde{W}^{\mu\nu\alpha\beta}(-(\mathbf{k}+\mathbf{q}))+\widetilde{W}^{\alpha\beta\mu\nu}(-(\mathbf{k}+\mathbf{q}))
--\widetilde{W}^{\mu\beta\alpha\nu}(-(\mathbf{k}+\mathbf{q}))-\widetilde{W}^{\alpha\nu\mu\beta}(-(\mathbf{k}+\mathbf{q}))\right]G^{\mu\nu}(\mathbf{k})$$
+$$\Sigma^{ab}(\mathbf{q}) = \frac{1}{2N}\sum_{\mathbf{k}}\sum_{cd}
+\left[\widetilde{W}^{cdab}(-(\mathbf{k}+\mathbf{q}))+\widetilde{W}^{abcd}(-(\mathbf{k}+\mathbf{q}))
+-\widetilde{W}^{cbad}(-(\mathbf{k}+\mathbf{q}))-\widetilde{W}^{adcb}(-(\mathbf{k}+\mathbf{q}))\right]G^{cd}(\mathbf{k})$$
 
 Expanding $\widetilde{W}(-(\mathbf{k}+\mathbf{q})) = \sum_\mathbf{r} W(\mathbf{r})\,e^{-i(\mathbf{k}+\mathbf{q})\cdot\mathbf{r}}$ and using $\frac{1}{N}\sum_\mathbf{k}G(\mathbf{k})\,e^{-i\mathbf{k}\cdot\mathbf{r}} = G(\mathbf{r})$:
 
@@ -313,10 +313,10 @@ $$\frac{1}{N}\sum_{\mathbf{k}}\widetilde{W}(-(\mathbf{k}+\mathbf{q}))\,G(\mathbf
 
 where the last step substitutes $\mathbf{r}\to-\mathbf{r}$. Therefore:
 
-$$\Sigma^{\alpha\beta}(\mathbf{q}) = \frac{1}{2}\mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\sum_{\mu\nu}
-\left[W^{\mu\nu\alpha\beta}(-\mathbf{r})+W^{\alpha\beta\mu\nu}(-\mathbf{r})
--W^{\mu\beta\alpha\nu}(-\mathbf{r})-W^{\alpha\nu\mu\beta}(-\mathbf{r})\right]
-G^{\mu\nu}(-\mathbf{r})\right]$$
+$$\Sigma^{ab}(\mathbf{q}) = \frac{1}{2}\mathcal{F}_{\mathbf{r}\to\mathbf{q}}\!\left[\sum_{cd}
+\left[W^{cdab}(-\mathbf{r})+W^{abcd}(-\mathbf{r})
+-W^{cbad}(-\mathbf{r})-W^{adcb}(-\mathbf{r})\right]
+G^{cd}(-\mathbf{r})\right]$$
 
 Real-space kernel: $\boldsymbol{W}(-\mathbf{r})\cdot\boldsymbol{G}(-\mathbf{r})$ (pointwise product of interaction and time-reversed Green's function, both evaluated at $-\mathbf{r}$, then FFT).
 
@@ -326,11 +326,11 @@ Real-space kernel: $\boldsymbol{W}(-\mathbf{r})\cdot\boldsymbol{G}(-\mathbf{r})$
 
 The three FFT-acceleratable cases are distinguished by which $\boldsymbol{\tau}$ indices coincide:
 
-| Case | $\boldsymbol{\tau}$ structure | $\widetilde{V}$ argument | Hartree | Fock | Real-space |
+| Case | $\boldsymbol{\tau}$ structure | $\widetilde{W}$ argument | Hartree | Fock | Real-space kernel |
 |---|---|---|---|---|---|
-| **A** density-density | $\tau_1=\tau_2=\tau,\;\tau_3=0$ | $\mathbf{k}_2-\mathbf{k}_1$ | $\widetilde{W}(\mathbf{0})\bar{G}$ | $[W(\mathbf{r})+W(-\mathbf{r})]\cdot G(\mathbf{r})$ via FFT | $[W+W(-\cdot)]\cdot G$ |
-| **B** exchange-type | $\tau_1=0,\;\tau_2=\tau_3=\tau$ | $\mathbf{k}_2-\mathbf{k}_3$ | $[W(-\mathbf{r})+W(\mathbf{r})]\cdot G(\mathbf{r})$ via FFT | $\widetilde{W}(\mathbf{0})\bar{G}$ | $[W(-\cdot)+W]\cdot G$ |
-| **C** pair-hopping | $\tau_1=\tau_3=\tau,\;\tau_2=0$ | $-(\mathbf{k}_1+\mathbf{k}_3)$ | $W(-\mathbf{r})\cdot G(-\mathbf{r})$ via FFT | $W(-\mathbf{r})\cdot G(-\mathbf{r})$ via FFT | $W(-\cdot)\cdot G(-\cdot)$ |
+| **A** density-density | $\tau_1=\tau_2=\tau,\;\tau_3=0$ | $\mathbf{k}_2-\mathbf{k}_1$ | $[\widetilde{W}^{cdab}(\mathbf{0}){+}\widetilde{W}^{abcd}(\mathbf{0})]\bar{G}^{cd}$ | $[W^{cbad}(\mathbf{r}){+}W^{adcb}(-\mathbf{r})]\cdot G^{cd}(\mathbf{r})$ via FFT | $[W(\mathbf{r}){+}W(-\mathbf{r})]\cdot G(\mathbf{r})$ |
+| **B** exchange-type | $\tau_1=0,\;\tau_2=\tau_3=\tau$ | $\mathbf{k}_2-\mathbf{k}_3$ | $[W^{cdab}(-\mathbf{r}){+}W^{abcd}(\mathbf{r})]\cdot G^{cd}(\mathbf{r})$ via FFT | $[\widetilde{W}^{cbad}(\mathbf{0}){+}\widetilde{W}^{adcb}(\mathbf{0})]\bar{G}^{cd}$ | $[W(-\mathbf{r}){+}W(\mathbf{r})]\cdot G(\mathbf{r})$ |
+| **C** pair-hopping | $\tau_1=\tau_3=\tau,\;\tau_2=0$ | $-(\mathbf{k}_1+\mathbf{k}_3)$ | $[W^{cdab}(-\mathbf{r}){+}W^{abcd}(-\mathbf{r})]\cdot G^{cd}(-\mathbf{r})$ via FFT | $[W^{cbad}(-\mathbf{r}){+}W^{adcb}(-\mathbf{r})]\cdot G^{cd}(-\mathbf{r})$ via FFT | $W(-\mathbf{r})\cdot G(-\mathbf{r})$ |
 
 All three cases reduce the $O(N_k^2 d^4)$ direct summation to $O(N_k\log N_k)$. In Cases A and B the two sub-channels ($\widetilde{W}(\mathbf{q}-\mathbf{k})$ and $\widetilde{W}(\mathbf{k}-\mathbf{q})$) contribute $W(\mathbf{r})$ and $W(-\mathbf{r})$ respectively, so the combined real-space kernel is $[W(\mathbf{r})+W(-\mathbf{r})]\cdot G(\mathbf{r})$. In Case C all channels give $\widetilde{W}(-(\mathbf{k}+\mathbf{q}))$, which maps to $W(-\mathbf{r})\cdot G(-\mathbf{r})$. Any interaction that does not fall into one of these three cases requires the full three-momentum evaluation via `build_Uk` at $O(N_k^2 d^4)$ cost.
 
