@@ -204,6 +204,16 @@ Self-consistent iteration procedure:
 
 The naive evaluation of the HF self-energy (§4) requires a double loop over $\mathbf{k}$ and $\mathbf{q}$, costing $O(N_k^2 d^4)$. A significant reduction to $O(N_k\log N_k)$ is possible whenever $\bar{V}^{abcd}(\boldsymbol{\tau}_1,\boldsymbol{\tau}_2,\boldsymbol{\tau}_3)$ depends on only a **single displacement variable**, i.e., two of the three $\boldsymbol{\tau}$'s are related by equality or vanish. There are three distinct structural cases.
 
+> **Convolution Identities.** All three cases reduce to one of the following key identities (each verified by substituting the FT convention $\widetilde{f}(\mathbf{q})=\sum_\mathbf{r}f(\mathbf{r})\,e^{i\mathbf{q}\cdot\mathbf{r}}$ directly):
+>
+> $$\frac{1}{N}\sum_\mathbf{k}\widetilde{A}(\mathbf{q}-\mathbf{k})\,\widetilde{B}(\mathbf{k}) = \mathcal{F}_{\mathbf{r}\to\mathbf{q}}[A(\mathbf{r})\,B(\mathbf{r})] \qquad\text{(standard convolution)}$$
+>
+> $$\frac{1}{N}\sum_\mathbf{k}\widetilde{A}(\mathbf{k}-\mathbf{q})\,\widetilde{B}(\mathbf{k}) = \mathcal{F}_{\mathbf{r}\to\mathbf{q}}[A(-\mathbf{r})\,B(\mathbf{r})] \qquad\text{(cross-correlation)}$$
+>
+> $$\frac{1}{N}\sum_\mathbf{k}\widetilde{A}(-(\mathbf{k}+\mathbf{q}))\,\widetilde{B}(\mathbf{k}) = \mathcal{F}_{\mathbf{r}\to\mathbf{q}}[A(-\mathbf{r})\,B(-\mathbf{r})]$$
+>
+> The sign of $\mathbf{k}$ in the $\widetilde{A}$ argument determines which real-space function appears: $(\mathbf{q}-\mathbf{k})$ gives $A(\mathbf{r})$; $(\mathbf{k}-\mathbf{q})$ gives $A(-\mathbf{r})$; $-(\mathbf{k}+\mathbf{q})$ gives both $A(-\mathbf{r})$ and $B(-\mathbf{r})$. Mixing up these cases is the most common source of sign errors in the FFT acceleration.
+
 #### 6.1 Case A — Density-Density ($\boldsymbol{\tau}_1=\boldsymbol{\tau}_2=\boldsymbol{\tau},\;\boldsymbol{\tau}_3=\mathbf{0}$)
 
 This is the structure of Hubbard $U$, nearest-neighbor Coulomb $V$, and Hund's coupling: the $\mathbf{r}_1$-side pair $c^\dagger_i c_j$ has $i=j$, and the $\mathbf{r}_2$-side pair $c^\dagger_k c_l$ has $k=l$. In creation-annihilation alternating order this corresponds to operators $(c^\dagger_{\mathbf{R}_1},\, c_{\mathbf{R}_1},\, c^\dagger_{\mathbf{R}_2},\, c_{\mathbf{R}_2})$, giving
