@@ -282,6 +282,10 @@ If you use this package in your research, please cite:
 
 Contributions are welcome! Please feel free to submit issues or pull requests on [GitHub](https://github.com/ZongYongyue/MeanFieldTheories.jl).
 
+## Contact
+
+Yong-Yue Zong — [zongyongyue@gmail.com](mailto:zongyongyue@gmail.com)
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
