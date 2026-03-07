@@ -291,6 +291,199 @@ function build_Wr(V_r)
     return (mats=mats, delta=delta)
 end
 
+# ──────────────── FFT-acceleration kernels ────────────────
+
+"""
+    _tau_case(τ1, τ2, τ3) -> Symbol
+
+Classify a displacement triple (τ1,τ2,τ3) into one of four FFT-acceleration cases
+(Theory §6). Priority A > B > C; a triple satisfying multiple conditions (e.g. (0,0,0))
+is assigned to the highest-priority case.
+
+- `:A` — density-density:  τ1 == τ2, τ3 == 0
+- `:B` — exchange-type:    τ1 == 0,  τ2 == τ3
+- `:C` — pair-hopping:     τ1 == τ3, τ2 == 0
+- `:general` — none of the above; requires full three-momentum evaluation.
+"""
+function _tau_case(τ1, τ2, τ3)
+    if τ1 == τ2 && all(iszero, τ3)
+        return :A
+    elseif all(iszero, τ1) && τ2 == τ3
+        return :B
+    elseif τ1 == τ3 && all(iszero, τ2)
+        return :C
+    else
+        return :general
+    end
+end
+
+"""
+    _classify_Vr(V_r) -> NamedTuple
+
+Partition the entries of `V_r` into four FFT-acceleration cases based on the
+(τ1,τ2,τ3) structure of each entry (Theory §6), following priority A > B > C.
+
+# Returns
+NamedTuple with fields `A`, `B`, `C`, `general`, each a `(mats, taus)` NamedTuple:
+- `.A`       — Case A: density-density (τ1=τ2=τ, τ3=0)
+- `.B`       — Case B: exchange-type   (τ1=0, τ2=τ3=τ)
+- `.C`       — Case C: pair-hopping    (τ1=τ3=τ, τ2=0)
+- `.general` — no single-displacement structure; full Ṽ(k1,k2,k3) required.
+"""
+function _classify_Vr(V_r)
+    T = eltype(V_r.mats[1])
+
+    mats_A = Array{T,4}[]; taus_A = NTuple{3,Vector{Float64}}[]
+    mats_B = Array{T,4}[]; taus_B = NTuple{3,Vector{Float64}}[]
+    mats_C = Array{T,4}[]; taus_C = NTuple{3,Vector{Float64}}[]
+    mats_G = Array{T,4}[]; taus_G = NTuple{3,Vector{Float64}}[]
+
+    for (mat, τs) in zip(V_r.mats, V_r.taus)
+        case = _tau_case(τs...)
+        if case == :A
+            push!(mats_A, mat); push!(taus_A, τs)
+        elseif case == :B
+            push!(mats_B, mat); push!(taus_B, τs)
+        elseif case == :C
+            push!(mats_C, mat); push!(taus_C, τs)
+        else
+            push!(mats_G, mat); push!(taus_G, τs)
+        end
+    end
+
+    return (A=(mats=mats_A, taus=taus_A),
+            B=(mats=mats_B, taus=taus_B),
+            C=(mats=mats_C, taus=taus_C),
+            general=(mats=mats_G, taus=taus_G))
+end
+
+"""
+    build_Wr_A(mats_a, taus_a) -> NamedTuple
+
+Assemble the Hartree and Fock real-space kernels for Case A interactions
+(density-density, τ1=τ2=τ, τ3=0). See Theory §6.1.
+
+Using free indices (a,b) and summation indices (c,d):
+
+**Hartree** (q-independent, contracted with Ḡ^{cd}):
+    Σ_H^{ab} = (1/2) Σ_{cd} [W̃^{cdab}(0) + W̃^{abcd}(0)] Ḡ^{cd}
+    hartree[a,b,c,d] = Σ_r [ permutedims(W(r),(3,4,1,2)) + W(r) ]
+                             ─────────────────────────────
+                              W^{cdab}(r)       W^{abcd}(r)
+
+**Fock** (FFT, contracted with G^{cd}(r) then transformed to q):
+    Σ_F^{ab}(q) = -(1/2) FFT_r[ Σ_{cd} [W^{cbad}(r) + W^{adcb}(-r)] G^{cd}(r) ]
+Using hermiticity W^{abcd}(-r) = conj(W^{dcba}(r)), one obtains W^{adcb}(-r) = conj(W^{bcda}(r)):
+    fock.mats[n][a,b,c,d] = permutedims(W(r),(3,2,1,4)) + conj(permutedims(W(r),(4,1,2,3)))
+                             ────────────────────────────   ──────────────────────────────────
+                              W^{cbad}(r)                   conj(W^{bcda}(r)) = W^{adcb}(-r)
+    fock.delta[n] = τ (the single displacement τ1=τ2 of the taus triple)
+
+# Returns
+`(hartree, fock)` where `hartree::Array{T,4}` and `fock::(mats, delta)`.
+"""
+function build_Wr_A(mats_a, taus_a)
+    isempty(mats_a) && return (hartree=nothing, fock=(mats=nothing, delta=nothing))
+    T = ComplexF64
+    d = size(mats_a[1], 1)
+
+    hartree = zeros(T, d, d, d, d)
+    delta   = unique([τ1 for (τ1, _, _) in taus_a])
+    fock_mats = [zeros(T, d, d, d, d) for _ in delta]
+
+    for (W, (τ1, _, _)) in zip(mats_a, taus_a)
+        hartree .+= permutedims(W, (3,4,1,2)) .+ W
+        idx = findfirst(==(τ1), delta)
+        fock_mats[idx] .+= permutedims(W, (3,2,1,4)) .+ conj(permutedims(W, (4,1,2,3)))
+    end
+
+    return (hartree=hartree, fock=(mats=fock_mats, delta=delta))
+end
+
+"""
+    build_Wr_B(mats_b, taus_b) -> NamedTuple
+
+Assemble the Hartree and Fock real-space kernels for Case B interactions
+(exchange-type, τ1=0, τ2=τ3=τ). See Theory §6.2. Case B is the complement of Case A.
+
+**Hartree** (FFT, contracted with G^{cd}(r) then transformed to q):
+    Σ_H^{ab}(q) = (1/2) FFT_r[ Σ_{cd} [W^{cdab}(-r) + W^{abcd}(r)] G^{cd}(r) ]
+Using W^{cdab}(-r) = conj(W^{badc}(r)):
+    hartree.mats[n][a,b,c,d] = conj(permutedims(W(r),(2,1,4,3))) + W(r)
+                                ──────────────────────────────────   ──────
+                                 W^{cdab}(-r)                        W^{abcd}(r)
+    hartree.delta[n] = τ (= τ2 = τ3 of the taus triple)
+
+**Fock** (q-independent, contracted with Ḡ^{cd}):
+    Σ_F^{ab} = -(1/2) Σ_{cd} [W̃^{cbad}(0) + W̃^{adcb}(0)] Ḡ^{cd}
+    fock[a,b,c,d] = Σ_r [ permutedims(W(r),(3,2,1,4)) + permutedims(W(r),(1,4,3,2)) ]
+                          ────────────────────────────   ──────────────────────────────
+                           W^{cbad}(r)                   W^{adcb}(r)
+
+# Returns
+`(hartree, fock)` where `hartree::(mats, delta)` and `fock::Array{T,4}`.
+"""
+function build_Wr_B(mats_b, taus_b)
+    isempty(mats_b) && return (hartree=(mats=nothing, delta=nothing), fock=nothing)
+    T = ComplexF64
+    d = size(mats_b[1], 1)
+
+    fock  = zeros(T, d, d, d, d)
+    delta = unique([τ2 for (_, τ2, _) in taus_b])
+    hartree_mats = [zeros(T, d, d, d, d) for _ in delta]
+
+    for (W, (_, τ2, _)) in zip(mats_b, taus_b)
+        idx = findfirst(==(τ2), delta)
+        hartree_mats[idx] .+= conj(permutedims(W, (2,1,4,3))) .+ W
+        fock .+= permutedims(W, (3,2,1,4)) .+ permutedims(W, (1,4,3,2))
+    end
+
+    return (hartree=(mats=hartree_mats, delta=delta), fock=fock)
+end
+
+"""
+    build_Wr_C(mats_c, taus_c) -> NamedTuple
+
+Assemble the combined real-space kernel for Case C interactions
+(pair-hopping, τ1=τ3=τ, τ2=0). See Theory §6.3.
+
+For Case C all four channels share the same -(k+q) momentum argument, so Hartree
+and Fock are not separated — the full self-energy is a single FFT:
+
+    Σ^{ab}(q) = (1/2) FFT_r[ Σ_{cd} K^{ab,cd}(r) · G^{cd}(-r) ]
+
+where all W factors are evaluated at -r (from hermiticity W^{abcd}(-r) = conj(W^{dcba}(r))):
+
+    K(r)[a,b,c,d] = W^{cdab}(-r) + W^{abcd}(-r) - W^{cbad}(-r) - W^{adcb}(-r)
+                  = conj(permutedims(W(r),(2,1,4,3)))   [W^{cdab}(-r) = conj(W^{badc}(r))]
+                  + conj(permutedims(W(r),(4,3,2,1)))   [W^{abcd}(-r) = conj(W^{dcba}(r))]
+                  - conj(permutedims(W(r),(2,3,4,1)))   [W^{cbad}(-r) = conj(W^{dabc}(r))]
+                  - conj(permutedims(W(r),(4,1,2,3)))   [W^{adcb}(-r) = conj(W^{bcda}(r))]
+
+Note: the caller must multiply K(r) by G(-r) (not G(r)) before applying FFT.
+
+# Returns
+`(mats, delta)` where `mats[n]` is the combined kernel K(r) at displacement `delta[n] = τ`.
+"""
+function build_Wr_C(mats_c, taus_c)
+    isempty(mats_c) && return (mats=nothing, delta=nothing)
+    T = ComplexF64
+    d = size(mats_c[1], 1)
+
+    delta = unique([τ1 for (τ1, _, _) in taus_c])
+    mats  = [zeros(T, d, d, d, d) for _ in delta]
+
+    for (W, (τ1, _, _)) in zip(mats_c, taus_c)
+        idx = findfirst(==(τ1), delta)
+        mats[idx] .+= conj(permutedims(W, (2,1,4,3))) .+
+                       conj(permutedims(W, (4,3,2,1))) .-
+                       conj(permutedims(W, (2,3,4,1))) .-
+                       conj(permutedims(W, (4,1,2,3)))
+    end
+
+    return (mats=mats, delta=delta)
+end
+
 # ──────────────── Green's function utilities ────────────────
 
 """
