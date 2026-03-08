@@ -2,12 +2,6 @@
 Hartree-Fock mean-field approximation for quantum many-body systems.
 """
 
-using SparseArrays
-using LinearAlgebra
-using Random
-using Printf
-using Dates
-
 # ──────────────── Shared internal helpers ────────────────
 
 _in_same_block(i, j, blocks) = any(b -> i in b && j in b, blocks)
@@ -229,7 +223,7 @@ function solve_hf(
         println("="^60)
     end
 
-    rng = seed !== nothing ? MersenneTwister(seed) : Random.default_rng()
+    rng = seed !== nothing ? MersenneTwister(seed) : default_rng()
     best_result = nothing
 
     for restart in 1:n_restarts
@@ -445,7 +439,7 @@ function _calculate_sz(G::AbstractMatrix, dofs::SystemDofs)
 end
 
 """
-    initialize_green(N, blocks; G_init=nothing, rng=Random.default_rng(), T=Float64)
+    initialize_green(N, blocks; G_init=nothing, rng=default_rng(), T=Float64)
 
 Initialize Green's function (N×N) with element type `T`.
 If `G_init` is provided, validates and converts it to `Matrix{T}`.
@@ -455,7 +449,7 @@ function initialize_green(
     N::Int,
     blocks::Vector{UnitRange{Int}};
     G_init=nothing,
-    rng::AbstractRNG=Random.default_rng(),
+    rng::AbstractRNG=default_rng(),
     T::Type=Float64
 )
     if G_init !== nothing

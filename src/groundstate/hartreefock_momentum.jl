@@ -16,13 +16,6 @@ The single-particle Green's function is stored as a 3-tensor G[k_idx, a, b] of s
 (Nk, d, d) rather than the (N, N) matrix used in real-space HF.
 """
 
-using SparseArrays
-using LinearAlgebra
-using Random
-using Printf
-using Dates
-
-
 # ──────────────── Preprocessing: kinetic term ────────────────
 
 """
@@ -492,7 +485,7 @@ end
 # ──────────────── Green's function utilities ────────────────
 
 """
-    initialize_green_k(Nk, d; G_init=nothing, rng=Random.default_rng()) -> Array{ComplexF64, 3}
+    initialize_green_k(Nk, d; G_init=nothing, rng=default_rng()) -> Array{ComplexF64, 3}
 
 Initialize the k-space Green's function stored as `G[a, b, k_idx]` of shape `(d, d, Nk)`
 (column-major: each `G[:,:,ki]` is a contiguous `d×d` matrix in memory).
@@ -515,7 +508,7 @@ function initialize_green_k(
     Nk::Int,
     d::Int;
     G_init = nothing,
-    rng::AbstractRNG = Random.default_rng()
+    rng::AbstractRNG = default_rng()
 )
     if G_init !== nothing
         size(G_init) == (d, d, Nk) ||
@@ -1113,7 +1106,7 @@ function solve_hfk(
     @assert temperature >= 0            "temperature must be non-negative"
     @assert n_restarts >= 1             "n_restarts must be >= 1"
 
-    rng = seed !== nothing ? MersenneTwister(seed) : Random.default_rng()
+    rng = seed !== nothing ? MersenneTwister(seed) : default_rng()
     best_result = nothing
 
     for restart in 1:n_restarts

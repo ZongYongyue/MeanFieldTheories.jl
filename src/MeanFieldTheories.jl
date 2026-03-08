@@ -33,7 +33,18 @@ H = build_onebody_matrix(dofs, hopping)
 """
 module MeanFieldTheories
 
-using StaticArrays
+using StaticArrays: SVector
+
+using SparseArrays: sparse, nnz
+
+using LinearAlgebra: norm, dot, eigen, Hermitian, tr, ishermitian,
+                     Diagonal, mul!, adjoint, transpose
+
+import Dates  # used as Dates.now(), Dates.hour(), Dates.minute(), Dates.second()
+
+using Printf: @sprintf
+
+using Random: AbstractRNG, MersenneTwister, default_rng
 
 # Export quantum system functionality
 include("quantumsystem/freedom.jl")

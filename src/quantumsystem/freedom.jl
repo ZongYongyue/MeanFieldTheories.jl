@@ -5,8 +5,6 @@ Provides types and functions for defining arbitrary quantum numbers
 (site, spin, orbital, valley, layer, etc.) and their valid combinations.
 """
 
-using LinearAlgebra
-
 #==================== Global Precision Setting ====================#
 
 """
