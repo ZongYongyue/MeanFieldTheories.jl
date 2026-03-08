@@ -105,7 +105,7 @@ end
 
 const _PHASE_ORDER = ["build_T", "build_U", "initialize_green",
                       "build_h_eff", "diagonalize", "update_green", "calc_energies",
-                      "solve_hf"]
+                      "solve_hfr"]
 
 function _print_timing_table(timings::Dict{String, Tuple{Int64, Int}}, total_ns::Int64)
     W = 20
@@ -114,15 +114,15 @@ function _print_timing_table(timings::Dict{String, Tuple{Int64, Int}}, total_ns:
     println("  ── Timing Summary " * "─"^44)
     println(@sprintf("  %-*s  %10s  %10s  %6s", W, "Phase", "Total", "Avg", "Calls"))
     println(sep)
-    for key in filter(k -> k != "solve_hf", _PHASE_ORDER)
+    for key in filter(k -> k != "solve_hfr", _PHASE_ORDER)
         haskey(timings, key) || continue
         ns, cnt = timings[key]
         println(@sprintf("  %-*s  %s  %s  %6d", W, key, _fmt_ns(ns), _fmt_ns(ns ÷ cnt), cnt))
     end
     println(sep)
-    if haskey(timings, "solve_hf")
-        ns, cnt = timings["solve_hf"]
-        println(@sprintf("  %-*s  %s  %s  %6d", W, "solve_hf (total)", _fmt_ns(ns), _fmt_ns(ns ÷ cnt), cnt))
+    if haskey(timings, "solve_hfr")
+        ns, cnt = timings["solve_hfr"]
+        println(@sprintf("  %-*s  %s  %s  %6d", W, "solve_hfr (total)", _fmt_ns(ns), _fmt_ns(ns ÷ cnt), cnt))
     end
     println(sep)
     println()
@@ -131,7 +131,7 @@ end
 # ──────────────── Public API ────────────────
 
 """
-    solve_hf(dofs, ops, block_occupations; kwargs...)
+    solve_hfr(dofs, ops, block_occupations; kwargs...)
 
 Solve Hartree-Fock equations using self-consistent field (SCF) iteration.
 
@@ -162,7 +162,7 @@ NamedTuple: `(G, eigenvalues, eigenvectors, energies, mu_list, converged, iterat
 - `ncond`: Total particle number `Σ G[i,i]`
 - `sz`: Total spin Sz (only if dofs contains a `:spin` Dof with size=2, otherwise `nothing`)
 """
-function solve_hf(
+function solve_hfr(
     dofs::SystemDofs,
     ops::AbstractVector{<:Operators},
     block_occupations;
@@ -278,7 +278,7 @@ function solve_hf(
             println(@sprintf("  μ (block %d):       %+.10f", i, μ))
         end
         total_ns = Int64(time_ns()) - solve_start
-        _accum!(timings, "solve_hf", total_ns)
+        _accum!(timings, "solve_hfr", total_ns)
         _print_timing_table(timings, total_ns)
         flush(stdout)
     end

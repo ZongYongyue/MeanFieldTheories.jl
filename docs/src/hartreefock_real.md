@@ -126,10 +126,10 @@ Set `include_fock=false` to retain only the Hartree terms (first two contributio
 
 ### 3. Self-Consistent Field Iteration
 
-**`solve_hf(dofs, ops, block_occupations; kwargs...)`** — Public entry point. Assembles the static matrices once, then runs one or more SCF restarts and returns the lowest-energy converged result.
+**`solve_hfr(dofs, ops, block_occupations; kwargs...)`** — Public entry point. Assembles the static matrices once, then runs one or more SCF restarts and returns the lowest-energy converged result.
 
 **Step 1 — Preprocessing.**
-Before the SCF loop, `solve_hf` calls `build_T` and `build_U` once to construct the static sparse matrices $T$ and $U$. Both are reused unchanged across all restarts and iterations.
+Before the SCF loop, `solve_hfr` calls `build_T` and `build_U` once to construct the static sparse matrices $T$ and $U$. Both are reused unchanged across all restarts and iterations.
 
 **Step 2 — Initialization.**
 The Green's function $G$ is initialized block-by-block. By default, each symmetry block is filled with a small random Hermitian perturbation (entries drawn uniformly from $[-0.005,\,0.005]$, then symmetrized). A user-provided `G_init` seeds the first restart; all subsequent restarts draw fresh random initializations.

@@ -55,7 +55,7 @@ build_interaction_tensor
 ```@docs
 build_T
 build_U
-solve_hf
+solve_hfr
 ```
 
 ---

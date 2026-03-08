@@ -125,7 +125,7 @@ end
     end
 end
 
-@testset "solve_hf — 2×4 Hubbard benchmark" begin
+@testset "solve_hfr — 2×4 Hubbard benchmark" begin
     # Replicate the uhfr.py benchmark: 2×4 Hubbard model at half-filling
     # Expected: total energy ≈ -3.408, converged within ~50 iterations
     Nsite = 8
@@ -166,7 +166,7 @@ end
             (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? U_strength : 0.0,
         order = (cdag, :i, c, :i, cdag, :i, c, :i)).ops
 
-    result = solve_hf(
+    result = solve_hfr(
         dofs,
         vcat(t_ops, U_ops),
         [Ncond ÷ 2, Ncond ÷ 2],

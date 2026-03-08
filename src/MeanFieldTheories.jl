@@ -75,7 +75,7 @@ export generate_onebody, generate_twobody
 export build_onebody_matrix, build_interaction_tensor
 
 # Export Hartree-Fock functions
-export build_T, build_U, solve_hf
+export build_T, build_U, solve_hfr
 export build_Tr, build_Tk, build_Vr, build_Vk, build_Uk
 export build_kpoints, solve_hfk
 export initialize_green_k, green_k_to_tau
