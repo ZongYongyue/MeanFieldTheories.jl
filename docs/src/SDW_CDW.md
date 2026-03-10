@@ -47,7 +47,7 @@ Two phases:
 Method: momentum-space UHF on 2×2 magnetic unit cell (d=8), 2×2 k-grid (4 k-points).
 For each V, SCF is run from two biased initial conditions (SDW and CDW);
 the lower-energy converged state is taken as the ground state.
-Results are saved to res.dat and plotted to CDW_SDW.png.
+Results are saved to res.dat and plotted to sdw_cdw.png.
 
 Note on U coefficient:
   generate_twobody with k=1 (single site) only generates one spin combination.
@@ -55,7 +55,7 @@ Note on U coefficient:
   (V with k=2 automatically generates both (i,j) and (j,i) assignments.)
 
 Run :
-    julia --project=benchmark benchmark/CDW_SDW/run.jl
+    julia --project=benchmark benchmark/SDW_CDW/run.jl
 """
 
 using Printf
@@ -271,7 +271,7 @@ vline!(plt, [U_ext/4],
     lw        = 1,
 )
 
-outfile = joinpath(@__DIR__, "CDW_SDW.png")
+outfile = joinpath(@__DIR__, "sdw_cdw.png")
 savefig(plt, outfile)
 println("\nPlot saved to $outfile")
 ```
@@ -281,7 +281,7 @@ println("\nPlot saved to $outfile")
 To run this benchmark, execute:
 
 ```bash
-julia --project=benchmark benchmark/CDW_SDW/run.jl
+julia --project=benchmark benchmark/SDW_CDW/run.jl
 ```
 
 This will:
@@ -289,13 +289,13 @@ This will:
 2. For each $V$, run SCF from both SDW and CDW initial conditions
 3. Compute the staggered magnetization $S(\pi,\pi)$ and staggered density $N(\pi,\pi)$
 4. Save the results to `res.dat`
-5. Generate a plot `CDW_SDW.png`
+5. Generate a plot `sdw_cdw.png`
 
 ## Results
 
 The calculated phase boundary at $V_c = U/4 = 1.0$ and the order parameter curves are in complete agreement with Fig. 5(b) of Ref. [1].
 
-![CDW_SDW](CDW_SDW.png)
+![SDW_CDW](sdw_cdw.png)
 
 ## References
 

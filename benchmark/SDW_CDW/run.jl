@@ -12,7 +12,7 @@ Two phases:
 Method: momentum-space UHF on 2×2 magnetic unit cell (d=8), 2×2 k-grid (4 k-points).
 For each V, SCF is run from two biased initial conditions (SDW and CDW);
 the lower-energy converged state is taken as the ground state.
-Results are saved to res.dat and plotted to CDW_SDW.png.
+Results are saved to res.dat and plotted to sdw_cdw.png.
 
 Note on U coefficient:
   generate_twobody with k=1 (single site) only generates one spin combination.
@@ -20,7 +20,7 @@ Note on U coefficient:
   (V with k=2 automatically generates both (i,j) and (j,i) assignments.)
 
 Run :
-    julia --project=benchmark benchmark/CDW_SDW/run.jl
+    julia --project=benchmark benchmark/SDW_CDW/run.jl
 """
 
 using Printf
@@ -220,6 +220,6 @@ vline!(plt, [U_ext/4],
     lw        = 1,
 )
 
-outfile = joinpath(@__DIR__, "CDW_SDW.png")
+outfile = joinpath(@__DIR__, "sdw_cdw.png")
 savefig(plt, outfile)
 println("\nPlot saved to $outfile")

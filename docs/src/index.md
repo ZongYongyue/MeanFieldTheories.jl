@@ -184,12 +184,12 @@ The calculation uses momentum-space unrestricted Hartree-Fock on a $2\times2$ ma
 
 Run:
 ```
-julia --project=benchmark benchmark/CDW_SDW/run.jl
+julia --project=benchmark benchmark/SDW_CDW/run.jl
 ```
 
 Results:
 
-![CDW_SDW](CDW_SDW.png)
+![SDW_CDW](sdw_cdw.png)
 
 The calculated phase boundary at $V_c = U/4 = 1.0$ and the order parameter curves are in complete agreement with Fig. 5(b) of Ref. [1].
 
