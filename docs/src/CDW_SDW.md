@@ -300,7 +300,7 @@ This will:
 
 The calculated phase boundary at $V_c = U/4 = 1.0$ and the order parameter curves are in complete agreement with Fig. 5(b) of Ref. [1].
 
-![CDW_SDW](benchmark/CDW_SDW/CDW_SDW.png)
+![CDW_SDW](../../benchmark/CDW_SDW/CDW_SDW.png)
 
 ## References
 
