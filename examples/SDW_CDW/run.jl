@@ -20,7 +20,7 @@ Note on U coefficient:
   (V with k=2 automatically generates both (i,j) and (j,i) assignments.)
 
 Run :
-    julia --project=examples examples/SDW_CDW/run.jl
+    julia --project=examples -t 8 examples/SDW_CDW/run.jl
 """
 
 using Printf
@@ -41,7 +41,7 @@ dofs = SystemDofs([Dof(:site, 4), Dof(:spin, 2, [:up, :dn])])
 unitcell = Lattice([Dof(:site, 4)],
                    [QN(site=i) for i in 1:4],
                    [[0.0,0.0],[1.0,0.0],[0.0,1.0],[1.0,1.0]];
-                   supercell_vectors=[[2.0,0.0],[0.0,2.0]])
+                   vectors=[[2.0,0.0],[0.0,2.0]])
 
 nn_bonds     = bonds(unitcell, (:p,:p), 1)
 onsite_bonds = bonds(unitcell, (:p,:p), 0)

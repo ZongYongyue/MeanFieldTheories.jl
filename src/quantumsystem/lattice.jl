@@ -21,11 +21,11 @@ Represents a lattice structure mapping position states to real-space coordinates
 - `position_dofs::Vector{Dof}`: Degrees of freedom that define positions
 - `position_states::Vector{Q}`: All valid position states
 - `coordinates::Vector{SVector{D,T}}`: Coordinate for each position state (length D)
-- `supercell_vectors::Union{Nothing, Vector{SVector{D,T}}}`: Supercell vectors for PBC (optional)
+- `vectors::Union{Nothing, Vector{SVector{D,T}}}`: Supercell vectors for PBC (optional)
 
 # Notes
 - `position_states[i]` corresponds to `coordinates[i]`
-- `supercell_vectors` is set automatically when using tiling constructor
+- `vectors` is set automatically when using tiling constructor
 
 # Examples
 ```julia
@@ -41,7 +41,7 @@ struct Lattice{D, Q<:QuantumNumber, T<:Real}
     position_dofs::Vector{Dof}
     position_states::Vector{Q}
     coordinates::Vector{SVector{D,T}}
-    supercell_vectors::Union{Nothing, Vector{SVector{D,T}}}
+    vectors::Union{Nothing, Vector{SVector{D,T}}}
 end
 
 # Public constructor: accepts Vector{Vector{T}} and converts to SVector (backward compatible)
@@ -49,11 +49,11 @@ function Lattice(
     position_dofs::Vector{Dof},
     position_states::Vector{Q},
     coordinates::Vector{Vector{T}};
-    supercell_vectors::Union{Nothing, Vector{Vector{T}}} = nothing
+    vectors::Union{Nothing, Vector{Vector{T}}} = nothing
 ) where {Q<:QuantumNumber, T<:Real}
     D = length(coordinates[1])
     sv_coords    = SVector{D,T}.(coordinates)
-    sv_supercell = isnothing(supercell_vectors) ? nothing : SVector{D,T}.(supercell_vectors)
+    sv_supercell = isnothing(vectors) ? nothing : SVector{D,T}.(vectors)
     Lattice{D,Q,T}(position_dofs, position_states, sv_coords, sv_supercell)
 end
 
@@ -62,9 +62,9 @@ function Lattice(
     position_dofs::Vector{Dof},
     position_states::Vector{Q},
     coordinates::Vector{SVector{D,T}};
-    supercell_vectors::Union{Nothing, Vector{SVector{D,T}}} = nothing
+    vectors::Union{Nothing, Vector{SVector{D,T}}} = nothing
 ) where {D, Q<:QuantumNumber, T<:Real}
-    Lattice{D,Q,T}(position_dofs, position_states, coordinates, supercell_vectors)
+    Lattice{D,Q,T}(position_dofs, position_states, coordinates, vectors)
 end
 
 """
@@ -120,7 +120,7 @@ function Base.show(io::IO, lattice::Lattice{D, Q, T}) where {D, Q, T}
         println(io)
     end
     println(io, "Number of position states: $nstates")
-    if isnothing(lattice.supercell_vectors)
+    if isnothing(lattice.vectors)
         print(io, "Supercell vectors: not set")
     else
         print(io, "Supercell vectors: set")
@@ -128,17 +128,17 @@ function Base.show(io::IO, lattice::Lattice{D, Q, T}) where {D, Q, T}
 end
 
 """
-    Lattice(unitcell, unitcell_vectors, box_size)
+    Lattice(unitcell, box_size)
 
 Create a lattice by tiling a unit cell.
 
 The first DOF of unitcell defines the unit cell type (with size=1 in unitcell).
 After tiling, its size becomes Nx*Ny*... (total number of unit cells).
-The supercell_vectors are automatically computed as box_size .* unitcell_vectors.
+The unitcell must define `vectors` which are used as the unit-cell
+translation vectors; the new lattice uses `box_size .* unitcell.vectors`.
 
 # Arguments
 - `unitcell::Lattice`: The unit cell definition (first DOF has size=1)
-- `unitcell_vectors::Vector{Vector{T}}`: Unit cell translation vectors [a1, a2, ...]
 - `box_size::NTuple{D, Int}`: Number of unit cells in each direction (Nx, Ny, ...)
 
 # Returns
@@ -154,27 +154,27 @@ unitcell = Lattice(
     [[0.0, 0.0], [0.5, 0.289]]
 )
 
-# Tile with unit cell vectors
-a1, a2 = [1.0, 0.0], [0.5, 0.866]
-lattice = Lattice(unitcell, [a1, a2], (4, 4))
+# Tile with unit-cell vectors already stored in unitcell.vectors
+lattice = Lattice(unitcell, (4, 4))
 # Result: DOFs [honeycomb_cell (16), sublattice (2)], 32 sites total
-# supercell_vectors = [4*a1, 4*a2] automatically set
+# vectors = [4*a1, 4*a2] automatically set
 ```
 """
 function Lattice(
     unitcell::Lattice{D, Q, T},
-    unitcell_vectors::Vector{Vector{T}},
     box_size::NTuple{M, Int}
 ) where {D, Q, T, M}
     @assert M == D "box_size dimension ($M) must match lattice dimension ($D)"
-    @assert length(unitcell_vectors) == D "Need $D unit cell vectors for $D-dimensional lattice"
     @assert unitcell.position_dofs[1].size == 1 "First DOF of unitcell must have size=1"
+    isnothing(unitcell.vectors) && error("unitcell.vectors is not set. Please set it in unitcell before tiling.")
+
+    unitcell_vectors = unitcell.vectors
 
     # Number of unit cells
     n_cells = prod(box_size)
 
     # Compute supercell vectors (convert user-provided Vector{Vector{T}} to SVector)
-    supercell_vectors = SVector{D,T}[rd(SVector{D,T}(box_size[i] .* unitcell_vectors[i])) for i in 1:D]
+    vectors = SVector{D,T}[rd(SVector{D,T}(box_size[i] .* unitcell_vectors[i])) for i in 1:D]
 
     # Create new DOFs: expand first DOF's size, keep others
     first_dof = unitcell.position_dofs[1]
@@ -213,7 +213,7 @@ function Lattice(
         cell_idx += 1
     end
 
-    return Lattice(new_dofs, position_states, sv_coordinates; supercell_vectors=supercell_vectors)
+    return Lattice(new_dofs, position_states, sv_coordinates; vectors=vectors)
 end
 
 #==================== Bond Specification ====================#
@@ -267,7 +267,18 @@ function Bond(states::Vector{Q}, coordinates::Vector{Vector{T}}) where {Q<:Quant
 end
 
 function Base.show(io::IO, bond::Bond)
-    print(io, "Bond(", bond.states, ", ", bond.coordinates, ", icoords=", bond.icoordinates, ")")
+    _show_bond_plain(io, bond)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", bond::Bond)
+    _show_bond_plain(io, bond)
+end
+
+function _show_bond_plain(io::IO, bond::Bond)
+    states_str = "[" * join(string.(bond.states), ", ") * "]"
+    coords = [collect(v) for v in bond.coordinates]
+    icoords = [collect(v) for v in bond.icoordinates]
+    print(io, "Bond(", states_str, ", ", coords, ", ", icoords, ")")
 end
 
 """
@@ -276,7 +287,7 @@ end
 Generate bonds based on neighbor specification.
 
 # Arguments
-- `lattice::Lattice`: The lattice structure (must have supercell_vectors set)
+- `lattice::Lattice`: The lattice structure (must have vectors set)
 - `boundary::NTuple{D, Symbol}`: Boundary conditions, :p (periodic) or :o (open)
 - `neighbors`: Neighbor specification:
   - `Int`: n-th nearest neighbor (0=onsite, 1=nearest, 2=next-nearest, ...)
@@ -288,8 +299,8 @@ Generate bonds based on neighbor specification.
 
 # Examples
 ```julia
-# Create lattice with tiling (supercell_vectors auto-set)
-lattice = Lattice(unitcell, [a1, a2], (4, 4))
+# Create lattice with tiling (vectors auto-set)
+lattice = Lattice(unitcell, (4, 4))
 
 # Onsite bonds - returns Vector{Bond} with 1 site per bond
 onsite = bonds(lattice, (:p, :p), 0)
@@ -314,8 +325,8 @@ function bonds(
     if neighbors == 0
         return _generate_onsite_bonds(lattice)
     else
-        supercell_vectors = _get_supercell_vectors(lattice)
-        return _generate_neighbor_bonds(lattice, supercell_vectors, boundary, neighbors)
+        vectors = _get_vectors(lattice)
+        return _generate_neighbor_bonds(lattice, vectors, boundary, neighbors)
     end
 end
 
@@ -339,20 +350,20 @@ function bonds(
     distances::Vector{<:Real};
     tolerance::Real = 1e-6
 ) where {D, Q, T}
-    supercell_vectors = _get_supercell_vectors(lattice)
+    vectors = _get_vectors(lattice)
     result = Bond{Q, T, D}[]
     for d in distances
-        append!(result, _generate_distance_bonds(lattice, supercell_vectors, boundary, d, tolerance))
+        append!(result, _generate_distance_bonds(lattice, vectors, boundary, d, tolerance))
     end
     return result
 end
 
-# Helper: get supercell_vectors or error
-function _get_supercell_vectors(lattice::Lattice)
-    if isnothing(lattice.supercell_vectors)
-        error("lattice.supercell_vectors is not set. Use Lattice(unitcell, vectors, box_size) or set supercell_vectors manually.")
+# Helper: get vectors or error
+function _get_vectors(lattice::Lattice)
+    if isnothing(lattice.vectors)
+        error("lattice.vectors is not set. Use Lattice(unitcell, box_size) with unitcell.vectors set, or set vectors manually.")
     end
-    return lattice.supercell_vectors
+    return lattice.vectors
 end
 
 # Helper: generate onsite bonds
@@ -369,10 +380,10 @@ end
 function _min_image_distance(
     coord1::SVector{D,T},
     coord2::SVector{D,T},
-    supercell_vectors::Vector{SVector{D,T}},
+    vectors::Vector{SVector{D,T}},
     boundary::NTuple{D, Symbol}
 ) where {D, T}
-    _, dist, _ = _min_image_delta(coord1, coord2, supercell_vectors, boundary)
+    _, dist, _ = _min_image_delta(coord1, coord2, vectors, boundary)
     return dist
 end
 
@@ -382,7 +393,7 @@ end
 function _min_image_delta(
     coord1::SVector{D,T},
     coord2::SVector{D,T},
-    supercell_vectors::Vector{SVector{D,T}},
+    vectors::Vector{SVector{D,T}},
     boundary::NTuple{D, Symbol}
 ) where {D, T}
     min_dist    = Inf
@@ -392,7 +403,7 @@ function _min_image_delta(
     for shifts in Iterators.product([boundary[i] == :p ? (-1, 0, 1) : (0,) for i in 1:D]...)
         delta = coord2 - coord1
         for (dim, shift) in enumerate(shifts)
-            delta = delta + shift * supercell_vectors[dim]
+            delta = delta + shift * vectors[dim]
         end
         dist = sqrt(sum(delta .^ 2))
         if dist < min_dist
@@ -403,7 +414,7 @@ function _min_image_delta(
     end
 
     # icell_shift: the lattice vector of the cell containing coord2's image
-    icell_shift = sum(best_shifts[d] * supercell_vectors[d] for d in 1:D)
+    icell_shift = sum(best_shifts[d] * vectors[d] for d in 1:D)
 
     return rd(best_delta), rd(min_dist), rd(icell_shift)
 end
@@ -411,7 +422,7 @@ end
 # Helper: generate neighbor bonds by order
 function _generate_neighbor_bonds(
     lattice::Lattice{D, Q, T},
-    supercell_vectors::Vector{SVector{D,T}},
+    vectors::Vector{SVector{D,T}},
     boundary::NTuple{D, Symbol},
     neighbor_order::Int
 ) where {D, Q, T}
@@ -424,7 +435,7 @@ function _generate_neighbor_bonds(
             d = _min_image_distance(
                 lattice.coordinates[i],
                 lattice.coordinates[j],
-                supercell_vectors, boundary
+                vectors, boundary
             )
             if d > 1e-10  # exclude self
                 push!(distances, d)  # already rounded by _min_image_distance
@@ -441,7 +452,7 @@ function _generate_neighbor_bonds(
     target_distance = sorted_distances[neighbor_order]
     tolerance = 1e-6
 
-    return _generate_distance_bonds(lattice, supercell_vectors, boundary, target_distance, tolerance)
+    return _generate_distance_bonds(lattice, vectors, boundary, target_distance, tolerance)
 end
 
 """
@@ -472,7 +483,7 @@ end
 # a "positive" direction (to keep exactly one of each i↔j pair).
 function _generate_distance_bonds(
     lattice::Lattice{D, Q, T},
-    supercell_vectors::Vector{SVector{D,T}},
+    vectors::Vector{SVector{D,T}},
     boundary::NTuple{D, Symbol},
     distance::Real,
     tolerance::Real
@@ -492,7 +503,7 @@ function _generate_distance_bonds(
                 # Cell-origin displacement for this periodic image of site j.
                 icell_shift = zero_sv
                 for (d, s) in enumerate(shifts)
-                    icell_shift = icell_shift + s * supercell_vectors[d]
+                    icell_shift = icell_shift + s * vectors[d]
                 end
 
                 delta = rd(lattice.coordinates[j] - lattice.coordinates[i] + icell_shift)
