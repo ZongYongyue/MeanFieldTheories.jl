@@ -37,4 +37,5 @@ deploydocs(;
     repo="github.com/Quantum-Many-Body/MeanFieldTheories.jl",
     devbranch="main",
     push_preview=true,
+    forcepush=true,
 )
