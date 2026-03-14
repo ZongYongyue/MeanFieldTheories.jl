@@ -21,7 +21,7 @@ Run:
 using Printf
 using LinearAlgebra
 using MeanFieldTheories
-using Plots
+using CairoMakie
 
 # ── Parameters ───────────────────────────────────────────────────────────────
 const t  = 1.0
@@ -124,17 +124,21 @@ T_func_2d   = build_Tk(build_Tr(dofs_2d, onebody_2d.ops, onebody_2d.irvec))
 
 bands_2d_mat = hcat([eigvals(Hermitian(T_func_2d(k))) for k in k_path]...)
 
-p0 = plot(; title="Graphene band structure (U=0)",
-    xlabel="k-path", ylabel="E / t",
-    xticks=(xtick_pos, xtick_lab),
-    xlims=(0, d_ΓK+d_KM+d_MΓ), ylims=(-3.5, 3.5),
-    legend=false, framestyle=:box)
-hline!(p0, [0.0]; color=:gray, linestyle=:dash, linewidth=0.8)
-for x in xtick_pos; vline!(p0, [x]; color=:gray, linestyle=:dot, linewidth=0.8); end
+fig0 = Figure(size=(600, 450))
+ax0  = Axis(fig0[1, 1];
+    title   = "Graphene band structure (U=0)",
+    xlabel  = "k-path",
+    ylabel  = "E / t",
+    xticks  = (xtick_pos, xtick_lab),
+    limits  = ((0, d_ΓK+d_KM+d_MΓ), (-3.5, 3.5)),
+    xgridvisible = false,
+    ygridvisible = false)
+hlines!(ax0, [0.0];     color=:gray, linestyle=:dash, linewidth=0.8)
+vlines!(ax0, xtick_pos; color=:gray, linestyle=:dot,  linewidth=0.8)
 for n in axes(bands_2d_mat, 1)
-    plot!(p0, arc, bands_2d_mat[n, :]; color=:steelblue, linewidth=1.5)
+    lines!(ax0, arc, bands_2d_mat[n, :]; color=:steelblue, linewidth=1.5)
 end
-savefig(p0, joinpath(@__DIR__, "graphene_bands_2d.png"))
+save(joinpath(@__DIR__, "graphene_bands_2d.png"), fig0)
 println("Saved: examples/SM_AFM/graphene_bands_2d.png")
 
 # ── Part 2: Zigzag cylinder band structure (U=0) ─────────────────────────────
@@ -148,29 +152,31 @@ dofs_cyl  = SystemDofs([Dof(:cell, Ny), Dof(:sub, 2, [:A, :B])])
 onebody_cyl = generate_onebody(dofs_cyl, bonds(cylinder, (:p, :o), 1), -t)
 T_func_cyl  = build_Tk(build_Tr(dofs_cyl, onebody_cyl.ops, onebody_cyl.irvec))
 
-nkx    = 200
-kx_vals = range(-π/a, π/a; length=nkx)
+nkx     = 200
+kx_vals = collect(range(-π/a, π/a; length=nkx))
 bands_cyl_mat = hcat([eigvals(Hermitian(T_func_cyl([kx, 0.0]))) for kx in kx_vals]...)
 
-p1 = plot(; title="Graphene zigzag cylinder (Ny=$Ny, U=0)",
-    xlabel="kx", ylabel="E / t",
-    xticks=([-π, -2π/3, 0, 2π/3, π], ["-π", "-2π/3", "0", "2π/3", "π"]),
-    xlims=(-π, π), ylims=(-3.5, 3.5),
-    legend=false, framestyle=:box)
-hline!(p1, [0.0]; color=:gray, linestyle=:dash, linewidth=0.8)
-vline!(p1, [-2π/3, 2π/3]; color=:gray, linestyle=:dot, linewidth=0.8)
+cyl_xtick_pos = [-π, -2π/3, 0.0, 2π/3, π]
+cyl_xtick_lab = ["-π", "-2π/3", "0", "2π/3", "π"]
+
+fig1 = Figure(size=(600, 450))
+ax1  = Axis(fig1[1, 1];
+    title   = "Graphene zigzag cylinder (Ny=$Ny, U=0)",
+    xlabel  = "kx",
+    ylabel  = "E / t",
+    xticks  = (cyl_xtick_pos, cyl_xtick_lab),
+    limits  = ((-π, π), (-3.5, 3.5)),
+    xgridvisible = false,
+    ygridvisible = false)
+hlines!(ax1, [0.0];          color=:gray, linestyle=:dash, linewidth=0.8)
+vlines!(ax1, [-2π/3, 2π/3]; color=:gray, linestyle=:dot,  linewidth=0.8)
 for n in axes(bands_cyl_mat, 1)
-    plot!(p1, kx_vals, bands_cyl_mat[n, :]; color=:steelblue, linewidth=0.6, alpha=0.7)
+    lines!(ax1, kx_vals, bands_cyl_mat[n, :]; color=:steelblue, linewidth=0.6, alpha=0.7)
 end
-savefig(p1, joinpath(@__DIR__, "graphene_bands_cylinder.png"))
+save(joinpath(@__DIR__, "graphene_bands_cylinder.png"), fig1)
 println("Saved: examples/SM_AFM/graphene_bands_cylinder.png")
 
 # ── Part 3: U sweep — ground state via symmetry-breaking restarts ─────────────
-#
-# No prior knowledge of the ordered phase is assumed. Each U value is solved
-# with n_restarts independent random starts, each seeded with a random
-# symmetry-breaking field (field_strength) for the first n_warmup iterations.
-# The solver automatically selects the lowest-energy converged result.
 println("\n" * "=" ^ 60)
 println("Part 3: Hubbard model — U sweep (symmetry-breaking restarts)")
 println("=" ^ 60)
@@ -209,14 +215,18 @@ open(joinpath(@__DIR__, "res.dat"), "w") do f
 end
 
 # ── Plot: AFM order parameter vs U ───────────────────────────────────────────
-p_ord = plot(;
-    xlabel="U / t", ylabel="m_AF",
-    title="Honeycomb Hubbard: AFM order at half-filling",
-    legend=:topleft, framestyle=:box, size=(600, 400))
-plot!(p_ord, U_sweep, [results[U].m_afm for U in U_sweep];
-    marker=:circle, lw=2, color=:darkred, label="m_AF (ground state)")
-vline!(p_ord, [Uc]; label="Uc ≈ $(Uc)", linestyle=:dash, color=:gray, lw=1)
-savefig(p_ord, joinpath(@__DIR__, "afm_order_parameter.png"))
+fig_ord = Figure(size=(600, 400))
+ax_ord  = Axis(fig_ord[1, 1];
+    xlabel = "U / t",
+    ylabel = "m_AF",
+    title  = "Honeycomb Hubbard: AFM order at half-filling",
+    xgridvisible = false,
+    ygridvisible = false)
+scatterlines!(ax_ord, U_sweep, [results[U].m_afm for U in U_sweep];
+    color=:darkred, linewidth=2, markersize=6, label="m_AF (ground state)")
+vlines!(ax_ord, [Uc]; label="Uc ≈ $(Uc)", linestyle=:dash, color=:gray, linewidth=1)
+axislegend(ax_ord; position=:lt)
+save(joinpath(@__DIR__, "afm_order_parameter.png"), fig_ord)
 println("\nSaved: examples/SM_AFM/afm_order_parameter.png")
 
 # ── Plot: Mean-field bands for selected U ────────────────────────────────────
@@ -224,27 +234,29 @@ nb   = length(U_bands)
 rows = nb <= 3 ? 1 : 2
 cols = ceil(Int, nb / rows)
 
-band_plots = Vector{Plots.Plot}(undef, nb)
+fig_bands = Figure(size=(350*cols, 310*rows))
 
 for (i, U) in enumerate(U_bands)
+    row = div(i-1, cols) + 1
+    col = mod(i-1, cols) + 1
+
     r       = results[U]
     U_ops   = build_U_ops(U)
     twobody = (ops=U_ops.ops, delta=U_ops.delta, irvec=U_ops.irvec)
     bands_mat, _ = energy_bands(dofs, onebody_hop, twobody, kpoints, r.r_gs.G_k, k_path)
 
-    p = plot(; title="U/t = $(U)",
-        xticks=(xtick_pos, xtick_lab),
-        xlims=(0, d_ΓK+d_KM+d_MΓ),
-        ylims=(-4.0+U/2, 4.0+U/2),
-        legend=false, framestyle=:box)
-    hline!(p, [0.0+U/2]; color=:gray, linestyle=:dash, linewidth=0.8)
-    for x in xtick_pos; vline!(p, [x]; color=:gray, linestyle=:dot, linewidth=0.8); end
+    ax = Axis(fig_bands[row, col];
+        title   = "U/t = $(U)",
+        xticks  = (xtick_pos, xtick_lab),
+        limits  = ((0, d_ΓK+d_KM+d_MΓ), (-4.0+U/2, 4.0+U/2)),
+        xgridvisible = false,
+        ygridvisible = false)
+    hlines!(ax, [U/2];      color=:gray, linestyle=:dash, linewidth=0.8)
+    vlines!(ax, xtick_pos;  color=:gray, linestyle=:dot,  linewidth=0.8)
     for n in axes(bands_mat, 1)
-        plot!(p, arc, bands_mat[n, :]; color=:steelblue, linewidth=1.2)
+        lines!(ax, arc, bands_mat[n, :]; color=:steelblue, linewidth=1.2)
     end
-    band_plots[i] = p
 end
 
-p_bands = plot(band_plots...; layout=(rows, cols), size=(350*cols, 300*rows))
-savefig(p_bands, joinpath(@__DIR__, "afm_bands.png"))
+save(joinpath(@__DIR__, "afm_bands.png"), fig_bands)
 println("Saved: examples/SM_AFM/afm_bands.png")
