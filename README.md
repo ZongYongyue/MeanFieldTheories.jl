@@ -4,7 +4,7 @@
 
 **MeanFieldTheories.jl** is a Julia package for studying quantum many-body systems using mean-field theory and related methods. It provides a complete workflow from constructing many-body Hamiltonians to obtaining self-consistent ground states and calculating collective excitation spectra, covering methods such as Hartree-Fock (HF), Single-Mode Approximation (SMA) and Random Phase Approximation (RPA).
 
-See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl
+See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl/dev
 
 ## Features
 
