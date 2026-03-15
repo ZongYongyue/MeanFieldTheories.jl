@@ -1046,6 +1046,19 @@ function _run_scf_k(
                       include_fock=include_fock)
         _accum!(timings, "build_heff_k", Int64(time_ns()) - t0)
 
+        # ── Hermiticity check (first iteration only) ──
+        if i == 1
+            for ki in 1:Nk
+                h = @view H_k[:, :, ki]
+                dev = norm(h - h')
+                ref = norm(h)
+                dev > sqrt(tol) * max(ref, 1.0) &&
+                    error("H_eff is not Hermitian at k-point $ki: " *
+                          "||H - H†|| = $(dev), ||H|| = $(ref). " *
+                          "Check your interaction definition (e.g. asymmetric Hubbard U).")
+            end
+        end
+
         # Symmetry-breaking warmup field: add random Hermitian field to H_k
         # for the first n_warmup iterations, then remove it.
         if symmetry_breaking_field !== nothing && i <= n_warmup

@@ -455,7 +455,7 @@ twobody = generate_twobody(dofs, nn_bonds, V)
 # Onsite Hubbard U: Σ_i U n_{i↑} n_{i↓}
 twobody = generate_twobody(dofs, onsite_bonds,
     (deltas, qn1, qn2, qn3, qn4) ->
-        (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? U : 0.0,
+        (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) && (qn1.spin !== qn3.spin) ? U/2 : 0.0,
     order = (cdag, :i, c, :i, cdag, :i, c, :i))
 
 # NN Coulomb in x-direction only (filter by deltas[1] = coord(i) - coord(j))

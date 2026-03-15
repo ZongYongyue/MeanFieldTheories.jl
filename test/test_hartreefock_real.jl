@@ -88,7 +88,7 @@ end
     U_ops = generate_twobody(dofs, onsite_bonds,
         (deltas, qn1, qn2, qn3, qn4) ->
             (qn1.site == qn2.site == qn3.site == qn4.site) &&
-            (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? 1.0 : 0.0,
+            (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) && (qn1.spin !== qn3.spin) ? 0.5 : 0.0,
         order = (cdag, :i, c, :i, cdag, :i, c, :i)).ops
 
     @testset "Basic functionality" begin
@@ -172,7 +172,7 @@ end
     U_ops = generate_twobody(dofs, onsite_bonds,
         (deltas, qn1, qn2, qn3, qn4) ->
             (qn1.site == qn2.site == qn3.site == qn4.site) &&
-            (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? U_strength : 0.0,
+            (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) && (qn1.spin !== qn3.spin) ? U_strength/2 : 0.0,
         order = (cdag, :i, c, :i, cdag, :i, c, :i)).ops
 
     result = solve_hfr(

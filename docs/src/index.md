@@ -32,6 +32,8 @@ Pages = [
     "plot_lattice.md",
     "SDW_CDW.md",
     "SM_AFM.md",
+    "Cubic_AFM.md",
+    "KMH.md",
     "api.md",
 ]
 Depth = 2

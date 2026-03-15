@@ -101,7 +101,7 @@ end
 #∑_i U_{ii} n_i↑ * n_i↓
 U_ops = generate_twobody(dofs, onsite_bonds,
     (deltas, qn1, qn2, qn3, qn4) ->
-        (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1,1,2,2) ? U_ext : 0.0,
+        (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) && (qn1.spin !== qn3.spin) ? U_ext/2 : 0.0,
     order = (cdag, :i, c, :i, cdag, :i, c, :i))
 
 # ── V sweep ───────────────────────────────────────────────────────────────────

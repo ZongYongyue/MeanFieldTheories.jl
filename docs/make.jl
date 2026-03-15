@@ -27,6 +27,7 @@ makedocs(;
             "SDW-CDW Phase Diagram" => "SDW_CDW.md",
             "AFM on Honeycomb Lattice" => "SM_AFM.md",
             "Finite-T AFM on Cubic Lattice" => "Cubic_AFM.md",
+            "Kane-Mele-Hubbard Model"       => "KMH.md",
         ],
         "API Reference" => "api.md",
     ],
