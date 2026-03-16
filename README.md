@@ -48,10 +48,10 @@ t = 1.0;  U = 8.0
 function make_ops(dofs)
     t_ops = generate_onebody(dofs, bonds(lattice, (:p, :p), 1),
         (delta, qn1, qn2) -> qn1.spin == qn2.spin ? -t : 0.0).ops
-    # 1/2 Σ_i 2*U_{ii} n_i↑ * n_i↓: the 1/2 prefactor is built-in, so multiply by 2 to compensate
+    # 1/2 Σ_{i,σ≠σ'} U_{ii} n_iσ * n_iσ'
     U_ops = generate_twobody(dofs, bonds(lattice, (:p, :p), 0),
         (deltas, qn1, qn2, qn3, qn4) ->
-            (qn1.spin, qn2.spin, qn3.spin, qn4.spin) == (1, 1, 2, 2) ? U : 0.0,
+            (qn1.spin==qn2.spin)&&(qn3.spin==qn4.spin)&&(qn1.spin!==qn3.spin) ? U/2 : 0.0,
         order = (cdag, :i, c, :i, cdag, :i, c, :i)).ops
     vcat(t_ops, U_ops)
 end
