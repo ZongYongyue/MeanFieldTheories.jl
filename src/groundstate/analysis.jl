@@ -5,7 +5,7 @@ Ground state analysis utilities: local observables from HF density matrices.
 # ──────────────── Local magnetic moment ────────────────
 
 """
-    local_magnetization(dofs, G; spin_dof=:spin, kwargs...) -> Vector{NamedTuple}
+    local_spin(dofs, G; spin_dof=:spin, kwargs...) -> Vector{NamedTuple}
 
 Compute the local magnetic moment on each site from a converged HF density matrix,
 with optional label-based filtering via keyword arguments.
@@ -52,21 +52,21 @@ Given `G_loc[a,b] = ⟨c†_a c_b⟩`:
 result = solve_hfk(...)
 
 # All sites
-mags = local_magnetization(dofs, result.G_k)
+mags = local_spin(dofs, result.G_k)
 
 # Only orbital=1 (a orbital) across all sites
-mags_a = local_magnetization(dofs, result.G_k; orbital=1)
+mags_a = local_spin(dofs, result.G_k; orbital=1)
 
 # Only B sublattice
-mags_B = local_magnetization(dofs, result.G_k; sub=2)
+mags_B = local_spin(dofs, result.G_k; sub=2)
 
 # B sublattice at cells 3 and 4
-mags_B34 = local_magnetization(dofs, result.G_k; sub=2, cell=[3,4])
+mags_B34 = local_spin(dofs, result.G_k; sub=2, cell=[3,4])
 
-print_magnetization(mags_B)
+print_spin(mags_B)
 ```
 """
-function local_magnetization(dofs::SystemDofs, G::AbstractArray;
+function local_spin(dofs::SystemDofs, G::AbstractArray;
                             spin_dof::Symbol = :spin, kwargs...)
 
     # ── 1. Locate and validate spin DOF ────────────────────────────────────
@@ -154,9 +154,9 @@ end
 # ──────────────── Pretty printer ────────────────
 
 """
-    print_magnetization(mags; digits=4, io=stdout)
+    print_spin(mags; digits=4, io=stdout)
 
-Pretty-print the output of [`local_magnetization`](@ref).
+Pretty-print the output of [`local_spin`](@ref).
 
 Columns: site label | n | mx | my | mz | |m| | θ(°) | φ(°)
 
@@ -168,7 +168,7 @@ site                     n       mx       my       mz      |m|     θ(°)     φ
 2                   1.0000   0.0000   0.0000  -0.2341   0.2341   180.00     0.00
 ```
 """
-function print_magnetization(mags::Vector; digits::Int = 4, io::IO = stdout)
+function print_spin(mags::Vector; digits::Int = 4, io::IO = stdout)
     isempty(mags) && (println(io, "(no sites)"); return)
 
     label_keys = keys(first(mags).label)
@@ -197,7 +197,7 @@ end
 # ──────────────── Magnetic structure factor & ordering wavevector ────────────────
 
 """
-    magnetic_structure_factor(mags, lattice, qpoints) -> Vector{Float64}
+    spin_structure_factor(mags, lattice, qpoints) -> Vector{Float64}
 
 Compute the magnetic structure factor
 
@@ -208,10 +208,10 @@ S(\\mathbf{q}) = \\frac{1}{N_s} \\left|\\sum_s e^{i\\mathbf{q}\\cdot\\mathbf{d}_
 at each q-point, where the sum runs over all sites, `\\mathbf{d}_s` is the
 real-space coordinate of site `s` (looked up from `lattice`), and
 `\\vec{m}_s = (m_x, m_y, m_z)` is its local magnetic moment
-(e.g. from [`local_magnetization`](@ref)).
+(e.g. from [`local_spin`](@ref)).
 
 # Arguments
-- `mags`: output of `local_magnetization`
+- `mags`: output of `local_spin`
 - `lattice`: the `Lattice` used to build the system; site coordinates are
   extracted automatically from `mag.label` via `get_coordinate`
 - `qpoints`: collection of q-vectors to evaluate at (same format as `build_kpoints`)
@@ -221,12 +221,12 @@ real-space coordinate of site `s` (looked up from `lattice`), and
 
 # Example
 ```julia
-mags = local_magnetization(dofs, result.G_k)
+mags = local_spin(dofs, result.G_k)
 qpts = build_kpoints([a1, a2], (100, 100))
-Sq   = magnetic_structure_factor(mags, lattice, qpts)
+Sq   = spin_structure_factor(mags, lattice, qpts)
 ```
 """
-function magnetic_structure_factor(mags, lattice::Lattice, qpoints)
+function spin_structure_factor(mags, lattice::Lattice, qpoints)
     coords = [get_coordinate(lattice, QuantumNumber(mag.label)) for mag in mags]
     Ns     = length(mags)
     Sq     = zeros(Float64, length(qpoints))
@@ -244,13 +244,13 @@ function magnetic_structure_factor(mags, lattice::Lattice, qpoints)
 end
 
 """
-    ordering_wavevector(mags, lattice, qpoints) -> NamedTuple
+    magnetic_ordering_wavevector(mags, lattice, qpoints) -> NamedTuple
 
 Find the magnetic ordering wavevector **Q** as the q-point that maximises
-[`magnetic_structure_factor`](@ref).
+[`spin_structure_factor`](@ref).
 
 # Arguments
-- `mags`: output of `local_magnetization`
+- `mags`: output of `local_spin`
 - `lattice`: the `Lattice` used to build the system
 - `qpoints`: collection of q-vectors to search over (same format as `build_kpoints`)
 
@@ -265,22 +265,162 @@ A `NamedTuple` with fields:
 
 # Example
 ```julia
-mags = local_magnetization(dofs, result.G_k)
+mags = local_spin(dofs, result.G_k)
 qpts = build_kpoints([a1, a2], (100, 100))
-res  = ordering_wavevector(mags, lattice, qpts)
+res  = magnetic_ordering_wavevector(mags, lattice, qpts)
 println("Q = ", res.Q, "  S(Q) = ", res.Sq_max)
 ```
 """
-function ordering_wavevector(mags, lattice::Lattice, qpoints)
-    Sq    = magnetic_structure_factor(mags, lattice, qpoints)
+function magnetic_ordering_wavevector(mags, lattice::Lattice, qpoints)
+    Sq    = spin_structure_factor(mags, lattice, qpoints)
     i_max = argmax(Sq)
     return (Q = qpoints[i_max], Sq_max = Sq[i_max], Sq = Sq)
+end
+
+# ──────────────── Local charge ────────────────
+
+"""
+    local_charge(dofs, G; kwargs...) -> Vector{NamedTuple}
+
+Compute the local charge (occupation) for each valid quantum state from a
+converged HF density matrix.
+
+All DOFs (spin, orbital, sublattice, …) are treated equally: no DOF is singled
+out or summed over.  Each valid state in `dofs` gets its own occupation
+`n = G_loc[i, i]`.  The full quantum-number label is preserved so that
+[`charge_structure_factor`](@ref) can extract spatial coordinates via the
+`Lattice`.
+
+Compatible with both HF solvers:
+- **HFk**: pass `result.G_k` — BZ average is computed automatically.
+- **HFr**: pass `result.G` — used directly.
+
+# Keyword arguments
+Any keyword filters on the quantum-number label (same convention as
+[`local_spin`](@ref)).
+
+# Returns
+`Vector` of `NamedTuple`s with fields `label` and `n`, one per matching state,
+sorted by linear index.
+
+# Example
+```julia
+charges  = local_charge(dofs, result.G_k)
+charges_A = local_charge(dofs, result.G_k; sub=1)
+```
+"""
+function local_charge(dofs::SystemDofs, G::AbstractArray; kwargs...)
+
+    G_loc = if ndims(G) == 3
+        dropdims(sum(G; dims=3); dims=3) ./ size(G, 3)
+    elseif ndims(G) == 2
+        G
+    else
+        error("G must be a 2D (HFr) or 3D (HFk) array, got $(ndims(G))D")
+    end
+
+    all_names    = Tuple(d.name for d in dofs.dofs)
+    label_filter = pairs(kwargs)
+    for key in keys(kwargs)
+        key in all_names ||
+            error("Filter key :$key is not a DOF. Available: $(all_names)")
+    end
+
+    results = NamedTuple[]
+    for qn in sort(dofs.valid_states; by = q -> dofs.qn_to_idx[q])
+        label = NamedTuple{all_names}(Tuple(qn[n] for n in all_names))
+        all(label_filter) do (key, val)
+            v = label[key]
+            val isa AbstractVector ? v in val : v == val
+        end || continue
+        idx = dofs.qn_to_idx[qn]
+        push!(results, (label = label, n = real(G_loc[idx, idx])))
+    end
+    return results
+end
+
+# ──────────────── Charge structure factor & ordering wavevector ────────────────
+
+"""
+    charge_structure_factor(charges, lattice, qpoints) -> Vector{Float64}
+
+Compute the charge structure factor
+
+```math
+N(\\mathbf{q}) = \\frac{1}{N_s} \\left|\\sum_s e^{i\\mathbf{q}\\cdot\\mathbf{d}_s}\\, \\delta n_s\\right|^2
+```
+
+where ``\\delta n_s = n_s - \\bar{n}`` is the deviation of the local charge from
+its spatial average.  Subtracting the mean suppresses the trivial ``\\mathbf{q}=0``
+peak from uniform filling, revealing true CDW modulations.
+
+# Arguments
+- `charges`: output of [`local_charge`](@ref)
+- `lattice`: the `Lattice` used to build the system; site coordinates are
+  extracted automatically via `get_coordinate`
+- `qpoints`: collection of q-vectors to evaluate at (same format as `build_kpoints`)
+
+# Returns
+`Vector{Float64}` of length `length(qpoints)`.
+
+# Example
+```julia
+charges = local_charge(dofs, result.G_k)
+qpts    = build_kpoints([a1, a2], (100, 100))
+Nq      = charge_structure_factor(charges, lattice, qpts)
+```
+"""
+function charge_structure_factor(charges, lattice::Lattice, qpoints)
+    coords = [get_coordinate(lattice, QuantumNumber(c.label)) for c in charges]
+    n_vals = [c.n for c in charges]
+    n_mean = sum(n_vals) / length(n_vals)
+    δn     = n_vals .- n_mean
+
+    Ns = length(charges)
+    Nq = zeros(Float64, length(qpoints))
+    for (iq, q) in enumerate(qpoints)
+        F = zero(ComplexF64)
+        for (dn, pos) in zip(δn, coords)
+            F += exp(im * sum(q .* pos)) * dn
+        end
+        Nq[iq] = abs2(F) / Ns
+    end
+    return Nq
+end
+
+"""
+    charge_ordering_wavevector(charges, lattice, qpoints) -> NamedTuple
+
+Find the charge ordering wavevector **Q** as the q-point that maximises
+[`charge_structure_factor`](@ref).
+
+# Returns
+A `NamedTuple` with fields:
+
+| field     | description                                          |
+|-----------|------------------------------------------------------|
+| `Q`       | the q-vector with the largest `N(q)`                |
+| `Nq_max`  | the peak value `N(Q)`                               |
+| `Nq`      | full `Vector{Float64}` of `N(q)` at all q-points   |
+
+# Example
+```julia
+charges = local_charge(dofs, result.G_k)
+qpts    = build_kpoints([a1, a2], (100, 100))
+res     = charge_ordering_wavevector(charges, lattice, qpts)
+println("Q = ", res.Q, "  N(Q) = ", res.Nq_max)
+```
+"""
+function charge_ordering_wavevector(charges, lattice::Lattice, qpoints)
+    Nq    = charge_structure_factor(charges, lattice, qpoints)
+    i_max = argmax(Nq)
+    return (Q = qpoints[i_max], Nq_max = Nq[i_max], Nq = Nq)
 end
 
 # ──────────────── Plotting stub (implemented in ext/MakieExt.jl) ────────────────
 
 """
-    plot_magnetization(mags, positions; kwargs...) -> Figure
+    plot_spin(mags, positions; kwargs...) -> Figure
 
 Visualize local magnetic moments as arrows on a lattice.
 
@@ -292,7 +432,7 @@ using WGLMakie   # Jupyter notebook
 ```
 
 # Arguments
-- `mags`: output of [`local_magnetization`](@ref)
+- `mags`: output of [`local_spin`](@ref)
 - `positions`: coordinates of each site, same order as `mags`.
   Each element is a 2- or 3-component vector `[x, y]` or `[x, y, z]`.
 
@@ -327,14 +467,14 @@ Sites with purely in-plane spins show only arrows; purely z-polarized sites show
 ```julia
 using CairoMakie
 result = solve_hfk(...)
-mags   = local_magnetization(dofs, result.G_k)
+mags   = local_spin(dofs, result.G_k)
 
 nn = bonds(lattice, (:p, :p), 1)
-fig = plot_magnetization(mags, unitcell.coordinates;
+fig = plot_spin(mags, unitcell.coordinates;
     bonds         = nn,
     unitcell_vecs = [[3/2, √3/2], [0.0, √3]],
     title         = "KMH ground state")
 save("magnetization.pdf", fig)
 ```
 """
-function plot_magnetization end
+function plot_spin end

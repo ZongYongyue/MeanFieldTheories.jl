@@ -48,7 +48,7 @@ end
 
 # Full Néel vector: captures AFM order in any spin direction
 function afm_order_parameter(G_k)
-    mags = local_magnetization(dofs, G_k)
+    mags = local_spin(dofs, G_k)
     sA, sB = mags[1], mags[2]
     return norm([sA.mx - sB.mx, sA.my - sB.my, sA.mz - sB.mz]) / 2
 end

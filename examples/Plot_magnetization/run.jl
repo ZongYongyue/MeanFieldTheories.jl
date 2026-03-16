@@ -1,5 +1,5 @@
 """
-Visual test of plot_magnetization for three representative magnetic orders.
+Visual test of plot_spin for three representative magnetic orders.
 
 Positions and bond pairs are derived directly from Lattice objects, not
 hardcoded, to demonstrate the intended workflow.
@@ -63,9 +63,9 @@ afm_mags = [
 ]
 
 println("Case 1 — Square lattice Néel AFM (pure z):")
-print_magnetization(afm_mags)
+print_spin(afm_mags)
 
-fig1 = plot_magnetization(afm_mags, sq_pos;
+fig1 = plot_spin(afm_mags, sq_pos;
            title = "Square-lattice Néel AFM  (pure z)",
            bonds = sq_bonds)
 save(joinpath(fig_dir, "case1_square_afm_z.png"), fig1)
@@ -97,9 +97,9 @@ tri_mags = [
 ]
 
 println("Case 2 — Triangular lattice 120° Néel order (pure xy):")
-print_magnetization(tri_mags)
+print_spin(tri_mags)
 
-fig2 = plot_magnetization(tri_mags, tri_pos;
+fig2 = plot_spin(tri_mags, tri_pos;
            title        = "Triangular-lattice 120° Néel  (pure xy)",
            bonds        = tri_bonds,
            axis_padding = 0.4)
@@ -122,9 +122,9 @@ cant_mags = [
 ]
 
 println("Case 3 — 120° Néel canted by +z field (xyz):")
-print_magnetization(cant_mags)
+print_spin(cant_mags)
 
-fig3 = plot_magnetization(cant_mags, tri_pos;
+fig3 = plot_spin(cant_mags, tri_pos;
            title        = "Triangular-lattice canted 120° Néel  (field ∥ z)",
            bonds        = tri_bonds,
            axis_padding = 0.4)

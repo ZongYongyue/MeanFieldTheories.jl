@@ -147,7 +147,7 @@ end
 
 # ──────────────── main function ───────────────────────────────────────────────
 
-function MeanFieldTheories.plot_magnetization(
+function MeanFieldTheories.plot_spin(
     mags::Vector,
     positions::AbstractVector;
     arrow_color              = :crimson,

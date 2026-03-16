@@ -93,10 +93,13 @@ energy_bands
 ## Analysis
 
 ```@docs
-local_magnetization
-print_magnetization
-magnetic_structure_factor
-ordering_wavevector
+local_spin
+print_spin
+spin_structure_factor
+magnetic_ordering_wavevector
+local_charge
+charge_structure_factor
+charge_ordering_wavevector
 ```
 
 ---
@@ -105,7 +108,7 @@ ordering_wavevector
 
 ```@docs
 plot_lattice
-plot_magnetization
+plot_spin
 ```
 
 See [Visualization](@ref) for detailed usage and examples.

@@ -192,7 +192,7 @@ open(joinpath(@__DIR__, "res.dat"), "w") do f
             prev_G = r.G_k
 
             mxy  = sdw_order_parameter(r.G_k)
-            mags = local_magnetization(dofs, r.G_k)
+            mags = local_spin(dofs, r.G_k)
             sA, sB = mags[1], mags[2]
 
             println(@sprintf("%-6.2f  %-8.4f  %-10.6f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %s",
@@ -246,7 +246,7 @@ open(joinpath(@__DIR__, "ordering_q.dat"), "w") do f
             (label=(cell=1, sub=1), mx=r.mx_A, my=r.my_A, mz=r.mz_A),
             (label=(cell=1, sub=2), mx=r.mx_B, my=r.my_B, mz=r.mz_B),
         ]
-        res = ordering_wavevector(mags, unitcell, qpoints)
+        res = magnetic_ordering_wavevector(mags, unitcell, qpoints)
         Q   = res.Q
         println(@sprintf("  %-6.2f  %-8.4f  %-10.6f  %-+14.6f  %-+14.6f  %.6f",
                          r.lambda, r.U, r.m_neel_xy, Q[1], Q[2], res.Sq_max))

@@ -61,10 +61,10 @@ save("lattice_bonds.png", fig)
 ## Magnetization Visualization
 
 ```@docs
-plot_magnetization
+plot_spin
 ```
 
-`plot_magnetization(mags, positions; kwargs...)` encodes the full 3D spin vector in a
+`plot_spin(mags, positions; kwargs...)` encodes the full 3D spin vector in a
 single top-view panel:
 
 | Element | Meaning |
@@ -73,7 +73,7 @@ single top-view panel:
 | **⊙ dot** | $m_z > 0$ (spin out of page), size $\propto m_z$ |
 | **⊗ cross** | $m_z < 0$ (spin into page), size $\propto |m_z|$ |
 
-`mags` is the output of [`local_magnetization`](@ref), and `positions` is a vector of
+`mags` is the output of [`local_spin`](@ref), and `positions` is a vector of
 site coordinates (e.g. `unitcell.coordinates`).  Bond sets produced by [`bonds`](@ref)
 can be passed directly to the `bonds` keyword — no helper function needed.
 
@@ -98,7 +98,7 @@ afm_mags = [
     (label=(site=4,), n=1.0, mx=0.0, my=0.0, mz=+mz0, m=mz0, theta_deg=0.0,   phi_deg=0.0),
 ]
 
-fig = plot_magnetization(afm_mags, sq_uc.coordinates;
+fig = plot_spin(afm_mags, sq_uc.coordinates;
     title = "Square-lattice Néel AFM  (pure z)",
     bonds = sq_NN)
 save("case1_square_afm_z.png", fig)
@@ -127,7 +127,7 @@ tri_mags = [
     (label=(site=3,), n=1.0, mx=+m0*sqrt(3)/2,   my=-m0/2,  mz=0.0, ...),  # −30°
 ]
 
-fig = plot_magnetization(tri_mags, tri_uc.coordinates;
+fig = plot_spin(tri_mags, tri_uc.coordinates;
     title        = "Triangular-lattice 120° Néel  (pure xy)",
     bonds        = tri_bonds,
     axis_padding = 0.4)
@@ -152,7 +152,7 @@ cant_mags = [
     (label=(site=3,), n=1.0, mx=+mxy_c*sqrt(3)/2, my=-mxy_c/2, mz=mz_c, ...),
 ]
 
-fig = plot_magnetization(cant_mags, tri_uc.coordinates;
+fig = plot_spin(cant_mags, tri_uc.coordinates;
     title        = "Triangular-lattice canted 120° Néel  (field ∥ z)",
     bonds        = tri_bonds,
     axis_padding = 0.4)
@@ -163,5 +163,5 @@ save("case3_canted_120neel_xyz.png", fig)
 
 !!! tip "Running the full script"
     The complete runnable script for all three cases is at
-    `examples/Plot_magnetization/run.jl`.  It uses [`local_magnetization`](@ref) output
+    `examples/Plot_magnetization/run.jl`.  It uses [`local_spin`](@ref) output
     directly from a solved HF problem rather than manually constructed NamedTuples.

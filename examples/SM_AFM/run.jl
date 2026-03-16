@@ -66,7 +66,7 @@ idx = Dict((qn[:cell], qn[:sub], qn[:spin]) => i
 # ── AFM order parameter ───────────────────────────────────────────────────────
 # Full Néel vector: m_neel = ||(mA - mB)|| / 2, captures order in any direction.
 function afm_order_parameter(G_k)
-    mags = local_magnetization(dofs, G_k)
+    mags = local_spin(dofs, G_k)
     sA, sB = mags[1], mags[2]
     return norm([sA.mx - sB.mx, sA.my - sB.my, sA.mz - sB.mz]) / 2
 end
@@ -181,7 +181,7 @@ results = let
         prev_G = r.G_k
 
         m_neel = afm_order_parameter(r.G_k)
-        mags   = local_magnetization(dofs, r.G_k)
+        mags   = local_spin(dofs, r.G_k)
         sA, sB = mags[1], mags[2]
         phase  = m_neel > 0.01 ? "AFM" : "PM"
         res[U] = (r_gs=r, m_neel=m_neel, mags=mags, phase=phase)
