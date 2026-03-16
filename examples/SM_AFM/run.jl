@@ -64,16 +64,11 @@ idx = Dict((qn[:cell], qn[:sub], qn[:spin]) => i
            for (i, qn) in enumerate(dofs.valid_states))
 
 # ── AFM order parameter ───────────────────────────────────────────────────────
+# Full Néel vector: m_neel = ||(mA - mB)|| / 2, captures order in any direction.
 function afm_order_parameter(G_k)
-    Nk_local = size(G_k, 3)
-    G_loc    = dropdims(sum(G_k, dims=3), dims=3) ./ Nk_local
-    nA_up = real(G_loc[idx[(1,1,1)], idx[(1,1,1)]])
-    nA_dn = real(G_loc[idx[(1,1,2)], idx[(1,1,2)]])
-    nB_up = real(G_loc[idx[(1,2,1)], idx[(1,2,1)]])
-    nB_dn = real(G_loc[idx[(1,2,2)], idx[(1,2,2)]])
-    sA = (nA_up - nA_dn) / 2
-    sB = (nB_up - nB_dn) / 2
-    return abs((sA - sB) / 2)
+    mags = local_magnetization(dofs, G_k)
+    sA, sB = mags[1], mags[2]
+    return norm([sA.mx - sB.mx, sA.my - sB.my, sA.mz - sB.mz]) / 2
 end
 
 # ── Two-body Hubbard interaction ──────────────────────────────────────────────
@@ -166,35 +161,48 @@ println("Part 3: Hubbard model — U sweep (symmetry-breaking restarts)")
 println("=" ^ 60)
 println(@sprintf("# k-grid: 100×100, Nk=%d,  expected Uc ≈ %.2f", Nk, Uc))
 println()
-println(@sprintf("# %-6s  %-14s  %-10s  %s", "U", "E_gs", "m_AF", "phase"))
+println(@sprintf("# %-6s  %-10s  %-8s  %-8s  %-8s  %-8s  %-8s  %-8s  %s",
+                 "U", "m_neel", "mx_A", "my_A", "mz_A", "mx_B", "my_B", "mz_B", "conv"))
 
-results = Dict{Float64, Any}()
+results = let
+    res    = Dict{Float64, Any}()
+    prev_G = nothing
+    for (i, U) in enumerate(reverse(sort(unique([U_sweep; U_bands]))))
+        U_ops   = build_U_ops(U)
+        twobody = (ops=U_ops.ops, delta=U_ops.delta, irvec=U_ops.irvec)
 
-for U in unique(sort([U_sweep; U_bands]))
-    U_ops   = build_U_ops(U)
-    twobody = (ops=U_ops.ops, delta=U_ops.delta, irvec=U_ops.irvec)
+        r = solve_hfk(dofs, onebody_hop, twobody, kpoints, n_elec;
+            G_init         = prev_G,
+            n_restarts     = i == 1 ? 5 : 1,
+            field_strength = i == 1 ? 1.0 : 0.0,
+            n_warmup       = i == 1 ? 15 : 0,
+            tol            = 1e-12,
+            verbose        = false)
+        prev_G = r.G_k
 
-    r = solve_hfk(dofs, onebody_hop, twobody, kpoints, n_elec;
-        n_restarts     = 5,
-        field_strength = 1.0,
-        n_warmup       = 15,
-        tol            = 1e-12,
-        verbose        = false)
+        m_neel = afm_order_parameter(r.G_k)
+        mags   = local_magnetization(dofs, r.G_k)
+        sA, sB = mags[1], mags[2]
+        phase  = m_neel > 0.01 ? "AFM" : "PM"
+        res[U] = (r_gs=r, m_neel=m_neel, mags=mags, phase=phase)
 
-    m_afm = afm_order_parameter(r.G_k)
-    phase = m_afm > 0.01 ? "AFM" : "PM"
-    results[U] = (r_gs=r, m_afm=m_afm, phase=phase)
-
-    println(@sprintf("  %-6.3f  %+14.8f  %-10.6f  %s",
-                     U, r.energies.total, m_afm, phase))
+        println(@sprintf("  %-6.3f  %-10.6f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %-8.4f  %s",
+                         U, m_neel, sA.mx, sA.my, sA.mz, sB.mx, sB.my, sB.mz,
+                         r.converged ? "✓" : "!"))
+    end
+    res
 end
 
 open(joinpath(@__DIR__, "res.dat"), "w") do f
-    println(f, "# U  m_AF  E_gs  phase")
+    println(f, "# U  m_neel  mx_A  my_A  mz_A  mx_B  my_B  mz_B  converged")
     for U in U_sweep
-        r = results[U]
-        println(f, @sprintf("%.4f  %.8f  %+.10f  %s",
-                            U, r.m_afm, r.r_gs.energies.total, r.phase))
+        r  = results[U]
+        sA, sB = r.mags[1], r.mags[2]
+        println(f, @sprintf("%.4f  %.8f  %.6f  %.6f  %.6f  %.6f  %.6f  %.6f  %s",
+                            U, r.m_neel,
+                            sA.mx, sA.my, sA.mz,
+                            sB.mx, sB.my, sB.mz,
+                            r.r_gs.converged))
     end
 end
 

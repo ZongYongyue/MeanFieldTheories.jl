@@ -72,6 +72,7 @@ open(joinpath(@__DIR__, "bands_cyl.dat")) do f
 end
 
 # ── Read res.dat ──────────────────────────────────────────────────────────────
+# Columns: U  m_neel  mx_A  my_A  mz_A  mx_B  my_B  mz_B  converged
 U_sweep_dat = Float64[]
 mafm_dat    = Float64[]
 
@@ -148,7 +149,7 @@ ax_ord  = Axis(fig_ord[1, 1];
     title  = "Honeycomb Hubbard: AFM order at half-filling",
     xgridvisible = false, ygridvisible = false)
 scatterlines!(ax_ord, U_sweep_dat, mafm_dat;
-    color=:darkred, linewidth=2, markersize=9, label="m_AF (ground state)")
+    color=:darkred, linewidth=2, markersize=9, label="m_Neel (ground state)")
 vlines!(ax_ord, [Uc]; label="Uc ≈ $(Uc)", linestyle=:dash, color=:gray, linewidth=1)
 axislegend(ax_ord; position=:lt)
 display(fig_ord)

@@ -12,9 +12,11 @@ $$H = -t \sum_{\langle ij \rangle,\sigma} (c^\dagger_{i\sigma}c_{j\sigma} + \tex
 - $U$: on-site Coulomb repulsion
 - Half-filling: 2 electrons per unit cell
 
-The honeycomb lattice has two sublattices A and B. The mean-field AFM order parameter is:
+The honeycomb lattice has two sublattices A and B. The mean-field AFM order parameter is the full Néel vector magnitude:
 
-$$m_{AF} = \frac{1}{2}\left|\frac{\langle S^z_A \rangle - \langle S^z_B \rangle}{2}\right|, \qquad \langle S^z_X \rangle = \frac{n_{X\uparrow} - n_{X\downarrow}}{2}$$
+$$m_\text{Néel} = \frac{1}{2} \left\| \vec{m}_A - \vec{m}_B \right\|, \qquad \vec{m}_X = (S^x_X,\, S^y_X,\, S^z_X)$$
+
+Because the pure Hubbard model has SU(2) spin symmetry, the ordered moment can point in any direction. Using the full vector norm (rather than only $S^z$) ensures the order parameter is non-zero regardless of which direction the SCF spontaneously selects.
 
 ## Method
 
@@ -36,12 +38,19 @@ onebody_hop = generate_onebody(dofs, nn_bonds,
 kpoints = build_kpoints([a1, a2], (100, 100))
 n_elec  = 2 * length(kpoints)   # half-filling
 
-# Hubbard interaction
+# Hubbard interaction (symmetric form — required for non-collinear order)
 function build_U_ops(U)
     return generate_twobody(dofs, onsite_bonds,
         (deltas, qn1, qn2, qn3, qn4) ->
             (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) && (qn1.spin !== qn3.spin) ? U/2 : 0.0,
         order = (cdag, :i, c, :i, cdag, :i, c, :i))
+end
+
+# Full Néel vector: captures AFM order in any spin direction
+function afm_order_parameter(G_k)
+    mags = local_magnetization(dofs, G_k)
+    sA, sB = mags[1], mags[2]
+    return norm([sA.mx - sB.mx, sA.my - sB.my, sA.mz - sB.mz]) / 2
 end
 
 # U sweep: ground state found automatically via symmetry-breaking restarts
@@ -56,9 +65,9 @@ for U in U_sweep
         tol            = 1e-12,
         verbose        = false)
 
-    m_afm = afm_order_parameter(r.G_k)
-    phase = m_afm > 0.01 ? "AFM" : "PM"
-    println(@sprintf("U = %.2f  E = %+.8f  m_AF = %.6f  %s", U, r.energies.total, m_afm, phase))
+    m_neel = afm_order_parameter(r.G_k)
+    phase  = m_neel > 0.01 ? "AFM" : "PM"
+    println(@sprintf("U = %.2f  m_Neel = %.6f  %s", U, m_neel, phase))
 end
 ```
 
@@ -101,7 +110,7 @@ julia --project=examples examples/SM_AFM/plot.jl
 1. Compute the U=0 graphene band structure along Γ–K–M–Γ and save to `bands_2d.dat`
 2. Compute the zigzag cylinder band structure (edge states) and save to `bands_cyl.dat`
 3. Sweep $U$ from 0 to 4 (41 points) using symmetry-breaking restarts
-4. Compute the AFM order parameter $m_{AF}$ for each $U$ and save to `res.dat`
+4. Compute the Néel order parameter $m_\text{Néel}$ (full vector norm) for each $U$ and save to `res.dat`
 5. Compute mean-field band structures at selected $U$ values and save to `afm_bands.dat`
 
 `plot.jl` will read the data files and generate figures in `docs/src/fig/`:
@@ -128,7 +137,7 @@ Edge states appear in the gap region for a zigzag-edged cylinder, crossing the F
 
 ![AFM order parameter](fig/afm_order_parameter.png)
 
-The calculated critical coupling $U_c/t \approx 2.2$ agrees with mean-field theory predictions. Below $U_c$, $m_{AF} = 0$ (PM); above $U_c$, $m_{AF}$ grows continuously (AFM).
+The calculated critical coupling $U_c/t \approx 2.2$ agrees with mean-field theory predictions. Below $U_c$, $m_\text{Néel} = 0$ (PM); above $U_c$, $m_\text{Néel}$ grows continuously (AFM). Because the Hubbard model has full SU(2) symmetry, the ordered moment direction is spontaneous — using the full vector norm captures AFM order regardless of which spin direction the SCF selects.
 
 ### Mean-Field Band Evolution
 
