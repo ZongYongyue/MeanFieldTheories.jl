@@ -22,7 +22,7 @@ makedocs(;
             "Momentum Space"  => "hartreefock_momentum.md",
         ],
         "Single-Mode Approximation" => [
-            "Introduction"    => "singlemode_intro.md",
+            "Introduction"    => "collective_excitations.md",
             "Particle-Hole Excitation" => "magnon.md"
         ],
         "Examples" => [
