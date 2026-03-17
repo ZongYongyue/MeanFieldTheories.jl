@@ -21,7 +21,7 @@ makedocs(;
             "Real Space"      => "hartreefock_real.md",
             "Momentum Space"  => "hartreefock_momentum.md",
         ],
-        "Collective_excitations" => [
+        "Collective excitations" => [
             "Introduction"    => "collective_excitations.md",
             "Particle-Hole Excitation" => "magnon.md"
         ],
