@@ -21,7 +21,7 @@ makedocs(;
             "Real Space"      => "hartreefock_real.md",
             "Momentum Space"  => "hartreefock_momentum.md",
         ],
-        "Single-Mode Approximation" => [
+        "Collective_excitations" => [
             "Introduction"    => "collective_excitations.md",
             "Particle-Hole Excitation" => "magnon.md"
         ],
