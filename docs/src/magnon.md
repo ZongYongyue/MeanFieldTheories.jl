@@ -1,10 +1,4 @@
-# Single-Mode Approximation
-
-This page introduces a theory of collective excitations on top of a
-Hartree-Fock ground state, which is commonly called the **single-mode
-approximation** (SMA) or **Bethe-Salpeter
-equation** (BSE).
-
+# Particle-Hole Excitation Theory on Top of the Hartree-Fock Mean Field
 
 ---
 
@@ -12,28 +6,28 @@ equation** (BSE).
 
 Consider a general many-body Hamiltonian in second-quantized form:
 
-$$
+```math
 H = H_0 + H_{\text{int}} = \sum_{ij,ab} t^{ab}_{ij}\,c^\dagger_{ia}\,c_{jb}
     + \sum_{ijkl,abcd} V^{abcd}_{ijkl}\,c^\dagger_{ia}\,c_{jb}\,c^\dagger_{kc}\,c_{ld}
-$$
+```
 
 where $i,j,k,l$ are site indices and $a,b,c,d$ are orbital (including spin) indices. $t^{ab}_{ij}$ are hopping matrix elements and $V^{abcd}_{ijkl}$ are two-body interaction matrix elements.
 
 After Fourier transformation, the hopping term becomes
 
-$$
+```math
 H_0 = \sum_{\mathbf{k}, ab} h^{ab}(\mathbf{k})\, c^\dagger_{\mathbf{k}a}\, c_{\mathbf{k}b}
-$$
+```
 
 where $h^{ab}(\mathbf{k}) = \sum_\delta t^{ab}_\delta\, e^{i\mathbf{k}\cdot\boldsymbol{\delta}}$ ($\delta$ denotes lattice displacement vectors).
 
 The interaction term in momentum space takes the **three-momentum form**:
 
-$$
+```math
 H_{\text{int}} = \frac{1}{N}\sum_{\mathbf{k}_1\mathbf{k}_2\mathbf{k}_3}\sum_{abcd}
 \widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)\,
 c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_4 d}
-$$
+```
 
 where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$ is fixed by momentum conservation, leaving only three independent momenta. $\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)$ is the three-momentum Fourier transform of the interaction potential. The index-operator correspondence is:
 
@@ -50,15 +44,15 @@ where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$ is fixed by mo
 
 For a ground state that preserves discrete translational symmetry, the single-particle density matrix is diagonal in momentum space:
 
-$$
+```math
 \langle c^\dagger_{\mathbf{k}a}\,c_{\mathbf{k}'b}\rangle = \delta_{\mathbf{k},\mathbf{k}'}\,G^{ab}(\mathbf{k})
-$$
+```
 
 ### 2.2 Wick Decomposition
 
 Applying Wick's theorem to the four-fermion operator product (dropping the fully contracted constant), there are four single-contraction channels:
 
-$$
+```math
 \begin{aligned}
 c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_4 d}
 \;\approx\;&
@@ -71,7 +65,7 @@ c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\
 -\langle c^\dagger_{\mathbf{k}_3 c} c_{\mathbf{k}_2 b}\rangle\, c^\dagger_{\mathbf{k}_1 a} c_{\mathbf{k}_4 d}
 }_{\text{Fock (exchange)}}
 \end{aligned}
-$$
+```
 
 The Hartree terms contract "same-side" operator pairs (the $1,2$ side or the $3,4$ side), while the Fock terms contract "cross-side" pairs, picking up a minus sign from fermionic anticommutation.
 
@@ -79,13 +73,13 @@ The Hartree terms contract "same-side" operator pairs (the $1,2$ side or the $3,
 
 Substituting all contractions, the mean-field interaction takes the form
 
-$$
+```math
 H_{\text{MF}} = \sum_{\mathbf{q},ab} \Sigma^{ab}(\mathbf{q})\, c^\dagger_{\mathbf{q}a}\,c_{\mathbf{q}b}
-$$
+```
 
 The Hartree-Fock self-energy is
 
-$$
+```math
 \Sigma^{ab}(\mathbf{q}) = \frac{1}{N}\sum_{\mathbf{k}}\sum_{cd}
 \Bigl[
 \underbrace{
@@ -97,47 +91,47 @@ $$
 -\widetilde{V}^{adcb}(\mathbf{q},\mathbf{k},\mathbf{k})
 }_{\text{Fock}}
 \Bigr]\,G^{cd}(\mathbf{k})
-$$
+```
 
 ### 2.4 Diagonalization and Band Structure
 
 Define the effective single-particle Hamiltonian matrix
 
-$$
+```math
 \mathcal{H}^{ab}(\mathbf{k}) = h^{ab}(\mathbf{k}) + \Sigma^{ab}(\mathbf{k})
-$$
+```
 
 Diagonalize it:
 
-$$
+```math
 \sum_b \mathcal{H}^{ab}(\mathbf{k})\, U_{bn}(\mathbf{k}) = E^n_\mathbf{k}\, U_{an}(\mathbf{k})
-$$
+```
 
 where $n$ is the band index, $E^n_\mathbf{k}$ is the mean-field band dispersion, and $U(\mathbf{k})$ is the unitary transformation matrix. Introduce quasiparticle operators:
 
-$$
+```math
 f_{\mathbf{k}n} = \sum_a U^*_{an}(\mathbf{k})\, c_{\mathbf{k}a}, \qquad c_{\mathbf{k}a} = \sum_n U_{an}(\mathbf{k})\, f_{\mathbf{k}n}
-$$
+```
 
 The mean-field Hamiltonian in the quasiparticle basis is then diagonal:
 
-$$
+```math
 \hat{\mathcal{H}}_{\text{MF}} = \sum_{\mathbf{k},n} E^n_\mathbf{k}\, f^\dagger_{\mathbf{k}n}\, f_{\mathbf{k}n} + E_{\text{const}}
-$$
+```
 
 ### 2.5 Hartree-Fock Ground State
 
 The Hartree-Fock ground state $|G\rangle$ is constructed by filling all bands below the Fermi level:
 
-$$
+```math
 |G\rangle = \prod_{\mathbf{k}} \prod_{n \in \text{occ}} f^\dagger_{\mathbf{k}n}\, |0\rangle
-$$
+```
 
 where "occ" denotes the set of occupied bands. The density matrix in the quasiparticle basis is
 
-$$
+```math
 \langle f^\dagger_{\mathbf{k}n}\, f_{\mathbf{k}n'} \rangle = \delta_{nn'}\, \bar{n}_n(\mathbf{k}), \qquad \bar{n}_n(\mathbf{k}) = \begin{cases} 1 & n \in \text{occ} \\ 0 & n \in \text{unocc} \end{cases}
-$$
+```
 
 ---
 
@@ -151,9 +145,9 @@ The simplest excitation above the Hartree-Fock ground state is a **particle-hole
 
 The particle-hole excited state is parametrized as
 
-$$
+```math
 |\mu, \mathbf{q}\rangle = \sum_{\mathbf{k}, n \in \text{unocc}} \psi^n_\mathbf{k}(\mu, \mathbf{q})\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0}\, |G\rangle
-$$
+```
 
 where:
 - $n_0$ is a fixed occupied band index (the band where the hole resides)
@@ -164,9 +158,9 @@ where:
 
 Define the particle-hole pair operator:
 
-$$
+```math
 \hat{O}^\dagger_{\mu\mathbf{q}} = \sum_{\mathbf{k}, n} \psi^n_\mathbf{k}(\mu, \mathbf{q})\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0}
-$$
+```
 
 so that $|\mu, \mathbf{q}\rangle = \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle$.
 
@@ -174,15 +168,15 @@ so that $|\mu, \mathbf{q}\rangle = \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle$.
 
 We require orthonormality among different excited states:
 
-$$
+```math
 \langle \mu', \mathbf{q} | \mu, \mathbf{q} \rangle = \delta_{\mu\mu'}
-$$
+```
 
 The inner product is evaluated on the Hartree-Fock ground state. Applying Wick's theorem to the four-operator expectation value
 
-$$
+```math
 \langle G|\, f^\dagger_{\mathbf{k}', n_0}\, f_{\mathbf{k}'+\mathbf{q}, n'}\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0}\, |G\rangle
-$$
+```
 
 we use the key facts:
 - $n, n'$ are unoccupied bands: $\langle f^\dagger_\cdot\, f_{\mathbf{k}+\mathbf{q}, n} \rangle = 0$
@@ -190,15 +184,15 @@ we use the key facts:
 
 The only surviving fully contracted Wick pairing gives:
 
-$$
+```math
 \langle G|\, f^\dagger_{\mathbf{k}', n_0}\, f_{\mathbf{k}'+\mathbf{q}, n'}\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0}\, |G\rangle = \delta_{\mathbf{k}'\mathbf{k}}\, \delta_{n'n}
-$$
+```
 
 Therefore the orthonormalization condition reduces to:
 
-$$
+```math
 \langle \mu', \mathbf{q} | \mu, \mathbf{q} \rangle = \sum_{\mathbf{k}, n} \psi^{n*}_\mathbf{k}(\mu', \mathbf{q})\, \psi^n_\mathbf{k}(\mu, \mathbf{q}) = \delta_{\mu\mu'}
-$$
+```
 
 That is, $\psi^n_\mathbf{k}$ as a vector in the composite $(\mathbf{k}, n)$ space satisfies the standard orthonormality condition.
 
@@ -210,9 +204,9 @@ That is, $\psi^n_\mathbf{k}$ as a vector in the composite $(\mathbf{k}, n)$ spac
 
 The excitation energy is computed using the **full original Hamiltonian** $H$ (not the mean-field $H_{\text{MF}}$):
 
-$$
+```math
 \varepsilon_\mu(\mathbf{q}) = \langle \mu, \mathbf{q} | H | \mu, \mathbf{q} \rangle - E_G
-$$
+```
 
 where $E_G = \langle G | H | G \rangle$ is the ground-state energy.
 
@@ -220,35 +214,35 @@ where $E_G = \langle G | H | G \rangle$ is the ground-state energy.
 
 Using $|\mu, \mathbf{q}\rangle = \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle$, the excitation energy can be written as
 
-$$
+```math
 \varepsilon_\mu(\mathbf{q}) = \langle G|\, \hat{O}_{\mu\mathbf{q}}\, H\, \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle - E_G
-$$
+```
 
 To simplify further, we use a simple operator identity. For any operators $A, B$, we have $AB = [A, B] + BA$, and therefore
 
-$$
+```math
 \hat{O}_{\mu\mathbf{q}}\, H\, \hat{O}^\dagger_{\mu\mathbf{q}} = \hat{O}_{\mu\mathbf{q}}\, [H, \hat{O}^\dagger_{\mu\mathbf{q}}] + \hat{O}_{\mu\mathbf{q}}\, \hat{O}^\dagger_{\mu\mathbf{q}}\, H
-$$
+```
 
 Taking the ground-state expectation value:
 
-$$
+```math
 \langle G|\, \hat{O}_{\mu\mathbf{q}}\, H\, \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle = \langle G|\, \hat{O}_{\mu\mathbf{q}}\, [H, \hat{O}^\dagger_{\mu\mathbf{q}}]\, |G\rangle + \langle G|\, \hat{O}_{\mu\mathbf{q}}\, \hat{O}^\dagger_{\mu\mathbf{q}}\, H\, |G\rangle
-$$
+```
 
 Now consider the second term. Within the Hartree-Fock framework, $|G\rangle$ is not the exact eigenstate of $H$, but by the **Brillouin theorem** (Appendix B), $H$ does not mix $|G\rangle$ into any single particle-hole excited state. This means that within the single particle-hole excitation subspace of interest, $H|G\rangle$ effectively behaves as $E_G|G\rangle$. Therefore
 
-$$
+```math
 \langle G|\, \hat{O}_{\mu\mathbf{q}}\, \hat{O}^\dagger_{\mu\mathbf{q}}\, H\, |G\rangle = E_G\, \langle G|\, \hat{O}_{\mu\mathbf{q}}\, \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle = E_G
-$$
+```
 
 (The last step uses the normalization $\langle G|\, \hat{O}_{\mu\mathbf{q}}\, \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle = \langle \mu, \mathbf{q}|\mu, \mathbf{q}\rangle = 1$.)
 
 Combining both terms, $E_G$ cancels with $-E_G$, yielding:
 
-$$
+```math
 \boxed{\varepsilon_\mu(\mathbf{q}) = \langle G|\, \hat{O}_{\mu\mathbf{q}}\, [H, \hat{O}^\dagger_{\mu\mathbf{q}}]\, |G\rangle}
-$$
+```
 
 The advantage of this form is that the commutator $[H, \hat{O}^\dagger]$ is more compact to evaluate than $H\hat{O}^\dagger$ directly, since the commutator naturally reduces the number of operator terms that need to be handled.
 
@@ -256,27 +250,27 @@ The advantage of this form is that the commutator $[H, \hat{O}^\dagger]$ is more
 
 Substituting the definitions of $\hat{O}^\dagger$ and $\hat{O}$ into the above expression. Recall
 
-$$
+```math
 \hat{O}^\dagger_{\mu\mathbf{q}} = \sum_{\mathbf{p}, n'} \psi^{n'}_\mathbf{p}\, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}, \qquad \hat{O}_{\mu\mathbf{q}} = \sum_{\mathbf{k}, n} \psi^{n*}_\mathbf{k}\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}
-$$
+```
 
 (The $(\mu, \mathbf{q})$ arguments of $\psi$ are suppressed for brevity.) After substitution, the excitation energy becomes
 
-$$
+```math
 \varepsilon_\mu(\mathbf{q}) = \sum_{\mathbf{k}, n}\sum_{\mathbf{p}, n'} \psi^{n*}_\mathbf{k}\; \underbrace{\langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [H,\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}]\, |G\rangle}_{\displaystyle \equiv\; \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})}\; \psi^{n'}_\mathbf{p}
-$$
+```
 
 Define the **effective Hamiltonian matrix element**
 
-$$
+```math
 \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) \equiv \langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [H,\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}]\, |G\rangle
-$$
+```
 
 The excitation energy then takes the vector-matrix-vector form:
 
-$$
+```math
 \varepsilon_\mu(\mathbf{q}) = \sum_{\mathbf{k}, n}\sum_{\mathbf{p}, n'} \psi^{n*}_\mathbf{k}\; \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})\; \psi^{n'}_\mathbf{p} = \boldsymbol{\psi}^\dagger\, \mathcal{H}^{\text{eff}}(\mathbf{q})\, \boldsymbol{\psi}
-$$
+```
 
 where $\boldsymbol{\psi}$ is a column vector with composite index $(\mathbf{k}, n)$. This is a **Hermitian (quadratic) form** in $\psi^n_\mathbf{k}$.
 
@@ -286,27 +280,27 @@ Our goal is to find, among all $\boldsymbol{\psi}$ satisfying the normalization 
 
 Define the Rayleigh quotient
 
-$$
+```math
 R[\boldsymbol{\psi}] = \frac{\boldsymbol{\psi}^\dagger\, \mathcal{H}^{\text{eff}}\, \boldsymbol{\psi}}{\boldsymbol{\psi}^\dagger\, \boldsymbol{\psi}}
-$$
+```
 
 (Here the denominator involves the $\delta_{\mathbf{k}\mathbf{k}'}\delta_{nn'}$ metric, i.e., the standard inner product — this is precisely the significance of the orthonormalization result proved in §3.3. If the metric were not the identity, the problem would become a generalized eigenvalue problem.)
 
 Taking the variation of $R[\boldsymbol{\psi}]$ with respect to $\psi^{n*}_\mathbf{k}$ and setting $\delta R / \delta \psi^{n*}_\mathbf{k} = 0$, using the quotient rule:
 
-$$
+```math
 \frac{\delta}{\delta \psi^{n*}_\mathbf{k}} \left( \frac{\boldsymbol{\psi}^\dagger \mathcal{H}^{\text{eff}} \boldsymbol{\psi}}{\boldsymbol{\psi}^\dagger \boldsymbol{\psi}} \right) = 0
-$$
+```
 
-$$
+```math
 \Longrightarrow \quad \frac{1}{\boldsymbol{\psi}^\dagger \boldsymbol{\psi}} \left[ \sum_{\mathbf{p}, n'} \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}\, \psi^{n'}_\mathbf{p} - R[\boldsymbol{\psi}] \cdot \psi^n_\mathbf{k} \right] = 0
-$$
+```
 
 Since $\boldsymbol{\psi}^\dagger \boldsymbol{\psi} \neq 0$, the expression in brackets must vanish. Denoting the value of the Rayleigh quotient at the stationary point by $\varepsilon_\mu$, we obtain the standard **eigenvalue problem**:
 
-$$
+```math
 \boxed{\sum_{\mathbf{p}, n'} \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})\, \psi^{n'}_\mathbf{p}(\mu, \mathbf{q}) = \varepsilon_\mu(\mathbf{q})\, \psi^n_\mathbf{k}(\mu, \mathbf{q})}
-$$
+```
 
 This is the **Bethe-Salpeter equation** in the Tamm-Dancoff approximation. Its physical content is:
 
@@ -320,9 +314,9 @@ This is the **Bethe-Salpeter equation** in the Tamm-Dancoff approximation. Its p
 
 ### 5.1 Decomposition Strategy
 
-$$
+```math
 \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = (\mathcal{H}_0)^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) + (\mathcal{H}_{\text{int}})^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})
-$$
+```
 
 We compute the contributions from the one-body part $[H_0, \cdot]$ and the two-body part $[H_{\text{int}}, \cdot]$ separately.
 
@@ -330,31 +324,31 @@ We compute the contributions from the one-body part $[H_0, \cdot]$ and the two-b
 
 Write $H_0$ in the quasiparticle basis:
 
-$$
+```math
 H_0 = \sum_{\mathbf{p}', mm'} \tilde{h}_{mm'}(\mathbf{p}')\, f^\dagger_{\mathbf{p}'m}\, f_{\mathbf{p}'m'}
-$$
+```
 
 where $\tilde{h}_{mm'}(\mathbf{p}') = \sum_{ab} U^*_{am}(\mathbf{p}')\, h^{ab}(\mathbf{p}')\, U_{bm'}(\mathbf{p}')$.
 
 Using the commutation relation for fermionic bilinears (Appendix A):
 
-$$
+```math
 [f^\dagger_{\mathbf{p}'m}\, f_{\mathbf{p}'m'},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}] = \delta_{\mathbf{p}', \mathbf{p}+\mathbf{q}}\,\delta_{m'n'}\, f^\dagger_{\mathbf{p}'m}\, f_{\mathbf{p}, n_0} - \delta_{\mathbf{p}', \mathbf{p}}\,\delta_{m, n_0}\, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}'m'}
-$$
+```
 
 Summing over $\mathbf{p}', m, m'$:
 
-$$
+```math
 [H_0,\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}] = \sum_m \tilde{h}_{mn'}(\mathbf{p}+\mathbf{q})\, f^\dagger_{\mathbf{p}+\mathbf{q}, m}\, f_{\mathbf{p}, n_0} - \sum_{m'} \tilde{h}_{n_0 m'}(\mathbf{p})\, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, m'}
-$$
+```
 
 **Physical interpretation**: the first term scatters the particle ($n' \to m$); the second term scatters the hole ($n_0 \to m'$).
 
 Taking the ground-state expectation value $\langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n} \cdots |G\rangle$ and using the results of §3.3 ($n, n'$ unoccupied, $n_0$ occupied), the two terms respectively give:
 
-$$
+```math
 (\mathcal{H}_0)^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}} \left[ \tilde{h}_{nn'}(\mathbf{k}+\mathbf{q}) - \delta_{nn'}\, \tilde{h}_{n_0 n_0}(\mathbf{k}) \right]
-$$
+```
 
 > **Note**: Here $\tilde{h}$ is the bare hopping Hamiltonian in the quasiparticle basis, which is generally **not diagonal**. The full mean-field Hamiltonian $\mathcal{H} = h + \Sigma$ is what diagonalizes. After combining the contributions from $H_0$ and $H_{\text{int}}$ (see §5.5), the mean-field part will fully diagonalize.
 
@@ -362,21 +356,21 @@ $$
 
 Write $H_{\text{int}}$ in the quasiparticle basis, transforming orbital indices to band indices with the $U$ matrix:
 
-$$
+```math
 H_{\text{int}} = \frac{1}{N}\sum_{\mathbf{p}_1\mathbf{p}_2\mathbf{p}_3}\sum_{m_1 m_2 m_3 m_4} \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)\, f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}
-$$
+```
 
 where $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2$, and the interaction in the quasiparticle basis is
 
-$$
+```math
 \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3) = \sum_{abcd} U^*_{am_1}(\mathbf{p}_1)\, U_{bm_2}(\mathbf{p}_2)\, U^*_{cm_3}(\mathbf{p}_3)\, U_{dm_4}(\mathbf{p}_4)\; \widetilde{V}^{abcd}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)
-$$
+```
 
 To compute $[H_{\text{int}},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0}]$, use
 
-$$
+```math
 [f^\dagger_1 f_2 f^\dagger_3 f_4,\; f^\dagger_5 f_6] = [f^\dagger_1 f_2,\; f^\dagger_5 f_6]\, f^\dagger_3 f_4 + f^\dagger_1 f_2\, [f^\dagger_3 f_4,\; f^\dagger_5 f_6]
-$$
+```
 
 Each bilinear commutator produces two terms (Appendix A), yielding a total of **4 terms**, each containing four fermion operators:
 
@@ -394,15 +388,15 @@ Each bilinear commutator produces two terms (Appendix A), yielding a total of **
 
 For each of the four terms, we need to evaluate six-operator expectation values of the form
 
-$$
+```math
 \langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [\text{4 } f/f^\dagger \text{ operators}]\; |G\rangle
-$$
+```
 
 On the Slater-determinant ground state, Wick's theorem decomposes these into all possible full contractions (three pairs), with the contraction rule
 
-$$
+```math
 \langle G|\, f^\dagger_{\mathbf{p}m}\, f_{\mathbf{p}'m'}\, |G\rangle = \delta_{\mathbf{p}\mathbf{p}'}\,\delta_{mm'}\, \bar{n}_m(\mathbf{p})
-$$
+```
 
 **Key selection rules**:
 
@@ -417,9 +411,9 @@ Therefore, in the six-operator expectation value, $f_{\mathbf{k}+\mathbf{q}, n}$
 
 Six-operator structure:
 
-$$
+```math
 \langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\, f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}, n_0}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}\, |G\rangle
-$$
+```
 
 Three classes of surviving contractions:
 
@@ -447,9 +441,9 @@ After performing the analogous analysis for all four terms (I-a), (I-b), (II-a),
 
 **(A) Mean-field part**: From contractions of type (α) and (β) (one external operator pair matched + one internal pair contracted with the Fermi sea). These terms exactly reproduce the Hartree-Fock self-energy corrections to the particle and hole. Combined with the one-body part from §5.2, $\tilde{h}$ is replaced by the full mean-field Hamiltonian $\tilde{\mathcal{H}} = \tilde{h} + \tilde{\Sigma}$, which fully diagonalizes to the mean-field energies:
 
-$$
+```math
 (\mathcal{H}_{\text{MF}})^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}}\,\delta_{nn'}\left(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k}\right)
-$$
+```
 
 This is the free particle-hole pair energy: particle energy minus hole energy.
 
@@ -461,11 +455,11 @@ This is the free particle-hole pair energy: particle energy minus hole energy.
 
 From the type-(γ) contractions in terms (I-a) and (II-a). Physical process: the interaction line connects the particle and hole lines, each scattering without exchange.
 
-$$
+```math
 \boxed{
 \mathcal{K}^{\text{d},nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = -\frac{1}{N}\sum_{abcd} U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn'}(\mathbf{p}+\mathbf{q})\, U^*_{cn_0}(\mathbf{p})\, U_{dn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{p}+\mathbf{q}, \mathbf{p})
 }
-$$
+```
 
 Feynman diagram:
 
@@ -481,11 +475,11 @@ Momentum conservation check: in $\widetilde{V}^{abcd}(\mathbf{k}_1, \mathbf{k}_2
 
 From the line-crossing contractions in terms (I-a) and (II-b) (or (I-b) and (II-a)).
 
-$$
+```math
 \boxed{
 \mathcal{K}^{\text{x},nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = +\frac{1}{N}\sum_{abcd} U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{dn_0}(\mathbf{k})\, U^*_{cn_0}(\mathbf{p})\, U_{bn'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{k}, \mathbf{p})
 }
-$$
+```
 
 Feynman diagram (line crossing):
 
@@ -503,11 +497,11 @@ Momentum conservation check: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$ (correspondi
 
 ### 5.7 Final Result
 
-$$
+```math
 \boxed{
 \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}}\,\delta_{nn'}\left(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k}\right) + \mathcal{K}^{\text{d},nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) + \mathcal{K}^{\text{x},nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})
 }
-$$
+```
 
 where:
 
@@ -525,9 +519,9 @@ In the general case both terms contribute. Depending on the symmetries of a spec
 
 The eigenvalue problem derived above,
 
-$$
+```math
 \sum_{\mathbf{p}, n'} \mathcal{H}^{nn'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})\, \psi^{n'}_\mathbf{p}(\mu, \mathbf{q}) = \varepsilon_\mu(\mathbf{q})\, \psi^n_\mathbf{k}(\mu, \mathbf{q})
-$$
+```
 
 which includes only particle-hole ($ph$) excitations, is equivalent to the **Tamm-Dancoff approximation (TDA)**.
 
@@ -535,15 +529,15 @@ which includes only particle-hole ($ph$) excitations, is equivalent to the **Tam
 
 The full **random phase approximation (RPA)** additionally includes hole-particle ($hp$) backward excitations:
 
-$$
+```math
 |\mu, \mathbf{q}\rangle_{\text{RPA}} = \sum_{\mathbf{k}, n} \left[ X^n_\mathbf{k}\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0} - Y^n_\mathbf{k}\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n} \right] |G\rangle
-$$
+```
 
 This leads to the standard matrix form of the RPA equation:
 
-$$
+```math
 \begin{pmatrix} A & B \\ -B^* & -A^* \end{pmatrix} \begin{pmatrix} X \\ Y \end{pmatrix} = \varepsilon \begin{pmatrix} X \\ Y \end{pmatrix}
-$$
+```
 
 where the $A$ matrix is precisely $\mathcal{H}^{\text{eff}}$ (i.e., the TDA matrix), and the $B$ matrix describes ground-state correlations. The Tamm-Dancoff approximation corresponds to $B = 0$.
 
@@ -581,18 +575,18 @@ The eigenvalues $\varepsilon_\mu(\mathbf{q})$ give the dispersion relation of co
 
 For fermionic bilinear operators:
 
-$$
+```math
 [f^\dagger_\alpha f_\beta,\; f^\dagger_\gamma f_\delta] = \delta_{\beta\gamma}\, f^\dagger_\alpha f_\delta - \delta_{\alpha\delta}\, f^\dagger_\gamma f_\beta
-$$
+```
 
 Derivation: using $\{f_\alpha, f^\dagger_\beta\} = \delta_{\alpha\beta}$,
 
-$$
+```math
 \begin{aligned}
 f^\dagger_\alpha f_\beta f^\dagger_\gamma f_\delta &= f^\dagger_\alpha (\delta_{\beta\gamma} - f^\dagger_\gamma f_\beta) f_\delta = \delta_{\beta\gamma}\, f^\dagger_\alpha f_\delta - f^\dagger_\alpha f^\dagger_\gamma f_\beta f_\delta \\
 f^\dagger_\gamma f_\delta f^\dagger_\alpha f_\beta &= \delta_{\delta\alpha}\, f^\dagger_\gamma f_\beta - f^\dagger_\gamma f^\dagger_\alpha f_\delta f_\beta = \delta_{\delta\alpha}\, f^\dagger_\gamma f_\beta - f^\dagger_\alpha f^\dagger_\gamma f_\beta f_\delta
 \end{aligned}
-$$
+```
 
 (The last step uses $f^\dagger_\gamma f^\dagger_\alpha = -f^\dagger_\alpha f^\dagger_\gamma$ and $f_\delta f_\beta = -f_\beta f_\delta$.) Subtracting the two expressions yields the result.
 
@@ -600,9 +594,9 @@ $$
 
 The matrix element of the full Hamiltonian $H$ between the Hartree-Fock ground state $|G\rangle$ and any single particle-hole excited state vanishes:
 
-$$
+```math
 \langle G | H | f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0} | G \rangle = 0 \quad (n \in \text{unocc}, \; n_0 \in \text{occ})
-$$
+```
 
 This is a direct consequence of the Hartree-Fock equations (the self-consistency condition). Physically, the Hartree-Fock ground state is the "optimal" single Slater determinant, whose energy cannot be lowered by any single particle-hole excitation.
 
@@ -612,9 +606,9 @@ This theorem guarantees the validity of recasting $\varepsilon$ in commutator fo
 
 The interaction $\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)$ in the original orbital space is transformed to the band basis via the $U$ matrix:
 
-$$
+```math
 \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3) = \sum_{abcd} U^*_{am_1}(\mathbf{k}_1)\, U_{bm_2}(\mathbf{k}_2)\, U^*_{cm_3}(\mathbf{k}_3)\, U_{dm_4}(\mathbf{k}_4)\; \widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)
-$$
+```
 
 where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$.
 

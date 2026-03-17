@@ -21,7 +21,10 @@ makedocs(;
             "Real Space"      => "hartreefock_real.md",
             "Momentum Space"  => "hartreefock_momentum.md",
         ],
-        "Single-Mode Approximation" => "singlemode.md",
+        "Single-Mode Approximation" => [
+            "Introduction"    => "singlemode_intro.md",
+            "Particle-Hole Excitation" => "magnon.md"
+        ],
         "Examples" => [
             "Visualization" => "plot.md",
             "SDW-CDW Phase Diagram" => "SDW_CDW.md",

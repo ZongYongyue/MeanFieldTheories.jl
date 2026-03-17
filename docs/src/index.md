@@ -28,7 +28,8 @@ Pages = [
     "hartreefock_intro.md",
     "hartreefock_real.md",
     "hartreefock_momentum.md",
-    "singlemode.md",
+    "singlemode_intromd"
+    "magnon.md",
     "plot_lattice.md",
     "SDW_CDW.md",
     "SM_AFM.md",
