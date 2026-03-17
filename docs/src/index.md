@@ -28,7 +28,7 @@ Pages = [
     "hartreefock_intro.md",
     "hartreefock_real.md",
     "hartreefock_momentum.md",
-    "singlemode_intro.md",
+    "collective_excitations.md",
     "magnon.md",
     "plot.md",
     "SDW_CDW.md",
