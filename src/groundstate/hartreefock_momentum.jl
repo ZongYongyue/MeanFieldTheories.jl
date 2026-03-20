@@ -549,12 +549,12 @@ Compute G(τ) at each displacement in `taus` via direct Fourier sum:
 
 # Arguments
 - `G_k::Array{ComplexF64, 3}`: Shape `(d, d, Nk)`.
-- `kpoints::Vector{Vector{Float64}}`: k-point list of length Nk.
+- `kpoints::AbstractVector{<:AbstractVector{Float64}}`: k-point list of length Nk.
 - `taus::Vector{Vector{Float64}}`: displacement vectors at which to evaluate G(r).
 """
 function green_k_to_tau(
     G_k::Array{ComplexF64, 3},
-    kpoints::Vector{Vector{Float64}},
+    kpoints::AbstractVector{<:AbstractVector{Float64}},
     taus::Vector{Vector{Float64}}
 )
     d = size(G_k, 1)
@@ -573,7 +573,7 @@ In-place version of `green_k_to_tau`. Overwrites each matrix in `G_taus`.
 function green_k_to_tau!(
     G_taus::Vector{Matrix{ComplexF64}},
     G_k::Array{ComplexF64, 3},
-    kpoints::Vector{Vector{Float64}},
+    kpoints::AbstractVector{<:AbstractVector{Float64}},
     taus::Vector{Vector{Float64}}
 )
     Nk = length(kpoints)
@@ -640,7 +640,7 @@ function build_heff_k!(
     wr_A, wr_B, wr_C,
     V_k_func,
     G_k::Array{ComplexF64, 3},
-    kpoints::Vector{Vector{Float64}},
+    kpoints::AbstractVector{<:AbstractVector{Float64}},
     G_taus_buf::Vector{Matrix{ComplexF64}},
     g_adj_buf::Matrix{ComplexF64},
     f_buf::Vector{ComplexF64},
@@ -763,9 +763,9 @@ function energy_bands(
     dofs::SystemDofs,
     onebody,
     twobody,
-    kgrid::Vector{Vector{Float64}},
+    kgrid::AbstractVector{<:AbstractVector{Float64}},
     G_k::Array{ComplexF64, 3},
-    qpoints::Vector{Vector{Float64}};
+    qpoints::AbstractVector{<:AbstractVector{Float64}};
     include_fock::Bool = true
 )
     Nk = length(kgrid)
@@ -959,7 +959,7 @@ function calculate_energies_k(
     G_k::Array{ComplexF64, 3},
     H_k::Array{ComplexF64, 3},
     T_k_func,
-    kpoints::Vector{Vector{Float64}};
+    kpoints::AbstractVector{<:AbstractVector{Float64}};
     ene_cutoff::Float64 = 100.0
 )
     d, _, Nk = size(G_k)          # layout: (d, d, Nk)
@@ -1005,7 +1005,7 @@ function _run_scf_k(
     G_k::Array{ComplexF64, 3},
     T_k_func,
     wr_A, wr_B, wr_C, V_k_func,
-    kpoints::Vector{Vector{Float64}},
+    kpoints::AbstractVector{<:AbstractVector{Float64}},
     n_electrons::Int,
     temperature::Float64,
     max_iter::Int,
@@ -1163,7 +1163,7 @@ For broken-symmetry phases (AFM, CDW, …) pass an enlarged magnetic unit cell.
 - `dofs::SystemDofs`: Internal DOFs of one magnetic unit cell.
 - `onebody`: Result of `generate_onebody(...)`; needs `.ops` and `.irvec`.
 - `twobody`: Result of `generate_twobody(...)`; needs `.ops` and `.irvec`.
-- `kpoints::Vector{Vector{Float64}}`: k-points (use `build_kpoints` for uniform grids).
+- `kpoints::AbstractVector{<:AbstractVector{Float64}}`: k-points (use `build_kpoints` for uniform grids).
 - `n_electrons::Int`: Total electron number across all k-points.
 
 # Keyword Arguments
@@ -1195,7 +1195,7 @@ function solve_hfk(
     dofs::SystemDofs,
     onebody,
     twobody,
-    kpoints::Vector{Vector{Float64}},
+    kpoints::AbstractVector{<:AbstractVector{Float64}},
     n_electrons::Int;
     temperature::Float64       = 0.0,
     max_iter::Int              = 1000,

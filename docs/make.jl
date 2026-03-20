@@ -23,7 +23,7 @@ makedocs(;
         ],
         "Collective excitations" => [
             "Introduction"    => "collective_excitations.md",
-            "Particle-Hole Excitation" => "magnon.md"
+            "Particle-Hole Excitation" => "particle_hole.md"
         ],
         "Examples" => [
             "Visualization" => "plot.md",

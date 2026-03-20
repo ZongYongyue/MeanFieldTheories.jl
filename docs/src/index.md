@@ -29,7 +29,7 @@ Pages = [
     "hartreefock_real.md",
     "hartreefock_momentum.md",
     "collective_excitations.md",
-    "magnon.md",
+    "particle_hole.md",
     "plot.md",
     "SDW_CDW.md",
     "SM_AFM.md",

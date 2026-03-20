@@ -20,4 +20,8 @@ using SafeTestsets
     @safetestset "Hartree-Fock (momentum space)" begin
         include("test_hartreefock_momentum.jl")
     end
+
+    @safetestset "Particle-hole excitations" begin
+        include("test_particle_hole.jl")
+    end
 end

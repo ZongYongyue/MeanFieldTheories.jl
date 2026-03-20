@@ -56,6 +56,9 @@ include("groundstate/hartreefock_real.jl")
 include("groundstate/hartreefock_momentum.jl")
 include("groundstate/analysis.jl")
 
+# Export excitation methods
+include("excitations/particle_hole.jl")
+
 # Export core types
 export QuantumNumber, QN, Dof, SystemDofs
 export Lattice, Bond
@@ -84,6 +87,9 @@ export local_spin, print_spin, plot_spin
 export spin_structure_factor, magnetic_ordering_wavevector
 export local_charge, charge_structure_factor, charge_ordering_wavevector
 export plot_lattice
+
+# Export excitation functions
+export solve_ph_excitations
 
 # Export utility constants
 export PRECISION, rd
