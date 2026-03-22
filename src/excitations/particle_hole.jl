@@ -28,71 +28,34 @@ Index / layout conventions (Julia is column-major):
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    _kindex_analytic(k, B_inv, N) -> Int
+    _kindex_analytic(k, B_inv, Ns) -> Int
 
-O(1) k-point index lookup for a **uniform square** grid built by `build_kpoints`
-with `box_size = (N, N, ...)`.
+O(1) k-point index lookup for a **uniform rectangular** grid built by `build_kpoints`
+with `box_size = (N₁, N₂, ...)` (each dimension may differ).
 
-The grid is:  k_{m₁,m₂,...} = Σᵢ (mᵢ/N) bᵢ,  mᵢ ∈ 0:N-1.
-`build_kpoints` iterates via `Iterators.product(0:N-1, ...)`, so dim-1 varies
-fastest and the 1-based linear index is `m[1] + m[2]*N + m[3]*N² + ... + 1`.
+The grid is:  k_{m₁,m₂,...} = Σᵢ (mᵢ/Nᵢ) bᵢ,  mᵢ ∈ 0:Nᵢ-1.
+`build_kpoints` iterates via `Iterators.product(0:N₁-1, 0:N₂-1, ...)`, so dim-1
+varies fastest and the 1-based linear index is
+  `m[1] + m[2]*N₁ + m[3]*N₁*N₂ + ... + 1`.
 
-BZ folding is handled by `mod(round(frac * N), N)`.
+BZ folding is handled by `mod(round(frac[d] * Nd), Nd)`.
 
 # Arguments
 - `k`: target k-vector (may lie in any BZ image).
-- `B_inv`: inv(hcat(b₁, b₂, ...)), pre-computed from reciprocal vectors.
-- `N::Int`: grid size along each dimension.
+- `B_inv`: pinv(hcat(b₁, b₂, ...)), pre-computed from reciprocal vectors.
+- `Ns::AbstractVector{Int}`: grid size along each dimension.
 """
-function _kindex_analytic(k::AbstractVector, B_inv::Matrix{Float64}, N::Int)
-    frac = B_inv * k              # fractional BZ coordinates
-    m    = mod.(round.(Int, frac .* N), N)   # grid indices in [0, N)
+function _kindex_analytic(k::AbstractVector, B_inv::AbstractMatrix, Ns::AbstractVector{Int})
+    frac = B_inv * k                                          # fractional BZ coordinates
+    m    = [mod(round(Int, frac[d] * Ns[d]), Ns[d]) for d in 1:length(Ns)]
     # linear index: dim-1 fastest (Iterators.product convention)
-    idx  = m[1] + 1
-    stride = N
-    for d in 2:length(m)
-        idx += m[d] * stride
-        stride *= N
+    idx    = m[1] + 1
+    stride = Ns[1]
+    for d in 2:length(Ns)
+        idx    += m[d] * stride
+        stride *= Ns[d]
     end
     return idx
-end
-
-"""
-    _kpoint_index(kpoints, k, reciprocal_vecs; tol=1e-8) -> Int
-
-Find the index of `k` (modulo reciprocal lattice vectors) in `kpoints`.
-
-`k` need not already lie in the first Brillouin zone — it is first reduced by
-subtracting integer multiples of each reciprocal vector (using `round`), and
-then matched against the grid.
-
-# Arguments
-- `kpoints`: the k-point grid, as returned by `build_kpoints` or `solve_hfk`.
-- `k`: target momentum vector (e.g. k_i + q).
-- `reciprocal_vecs`: the reciprocal lattice vectors b_1, b_2, … satisfying
-  a_i · b_j = 2π δ_{ij}.  Same vectors used when calling `build_kpoints`.
-
-# Returns
-The integer index `idx` such that `kpoints[idx] ≈ k mod BZ`.
-Throws an error if no match is found within `tol`.
-"""
-function _kpoint_index(
-    kpoints::Vector{Vector{Float64}},
-    k::AbstractVector{<:Real},
-    reciprocal_vecs::Vector{Vector{Float64}};
-    tol::Float64 = 1e-8
-)
-    D = length(reciprocal_vecs)
-    kv = collect(Float64, k)
-    min_b  = minimum(norm(b) for b in reciprocal_vecs)
-    nshift = max(1, ceil(Int, norm(kv) / min_b) + 1)
-    for shifts in Iterators.product(ntuple(_ -> -nshift:nshift, D)...)
-        k_shifted = kv .- sum(shifts[d] .* reciprocal_vecs[d] for d in 1:D)
-        for (idx, kpt) in enumerate(kpoints)
-            norm(kpt .- k_shifted) < tol && return idx
-        end
-    end
-    error("_kpoint_index: no k-point found within tol=$tol for k=$k")
 end
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -214,13 +177,6 @@ function _build_heff_ph_excitation(
 
             Vd = Vd_raw .+ permutedims(Vd_raw, (3, 4, 1, 2))
             Vx = Vx_raw .+ permutedims(Vx_raw, (3, 4, 1, 2))
-            
-            if k == 1 && p == 1
-                println("sum(abs.(Vd)) = ", sum(abs.(Vd)))
-                println("sum(abs.(Vx)) = ", sum(abs.(Vx)))
-                println("Vd[3,3,1,1] = ", Vd[3,3,1,1])
-                println("Vd[1,1,3,3] = ", Vd[1,1,3,3])
-            end
 
             Vd_r = reshape(Vd, norb^2, norb^2)
             Vx_r = reshape(permutedims(Vx, (1,4,2,3)), norb^2, norb^2)
@@ -320,19 +276,47 @@ function solve_ph_excitations(
     norb    = size(eigenvalues, 1)
     tol_occ = 1e-8
 
-    # ── Analytic O(1) k-index lookup (requires uniform square grid) ───────────
-    D    = length(kpoints_hf[1])
-    N_hf = round(Int, length(kpoints_hf) ^ (1 / D))
-    @assert N_hf^D == length(kpoints_hf) "HF k-grid must be a square N^D grid"
-    B_inv = inv(hcat(reciprocal_vecs...))   # D×D, pre-computed once
+    # ── Detect active dimensions in HF k-point grid ───────────────────────────
+    D_hf  = length(kpoints_hf[1])
+    Nk_hf = length(kpoints_hf)
+    active_dims = [d for d in 1:D_hf if any(abs(k[d]) > 1e-12 for k in kpoints_hf)]
+    n_active    = length(active_dims)
+
+    length(reciprocal_vecs) == n_active ||
+        error("reciprocal_vecs must have $n_active vector(s) for this k-point grid " *
+              "(detected $n_active active dimension(s) in hf.kpoints), " *
+              "got $(length(reciprocal_vecs))")
+
+    # active_k: project any k-vector (D_hf-dim or n_active-dim) onto active subspace
+    function active_k(k::AbstractVector)
+        length(k) == n_active && return collect(Float64, k)
+        length(k) == D_hf     && return Float64[k[d] for d in active_dims]
+        error("k length $(length(k)) incompatible: expected $n_active or $D_hf")
+    end
+
+    # B_inv in active subspace (n_active × n_active)
+    rv_active = [active_k(b) for b in reciprocal_vecs]
+    B_inv     = inv(hcat(rv_active...))
+
+    # Infer per-dimension grid sizes from fractional coordinates in active subspace
+    Ns_hf = let frac_sets = [Set{Int}() for _ in 1:n_active]
+        for k in kpoints_hf
+            f = B_inv * active_k(k)
+            for d in 1:n_active
+                push!(frac_sets[d], round(Int, f[d] * Nk_hf))
+            end
+        end
+        [length(s) for s in frac_sets]
+    end
+    @assert prod(Ns_hf) == Nk_hf "HF k-grid size mismatch: inferred $(Ns_hf) but got $Nk_hf points"
 
     # ── Excit sub-grid (defaults to full HF grid) ─────────────────────────────
     if excit_kpoints === nothing
         kpoints_excit = kpoints_hf
-        excit_to_hf   = collect(1:length(kpoints_hf))
+        excit_to_hf   = collect(1:Nk_hf)
     else
         kpoints_excit = excit_kpoints
-        excit_to_hf   = [_kindex_analytic(k, B_inv, N_hf) for k in kpoints_excit]
+        excit_to_hf   = [_kindex_analytic(active_k(k), B_inv, Ns_hf) for k in kpoints_excit]
     end
     Nk_excit = length(kpoints_excit)
 
@@ -369,8 +353,8 @@ function solve_ph_excitations(
             end
         end
 
-        # kq_indices[k]: HF index of (excit_k + q)
-        kq_indices = [_kindex_analytic(kpoints_excit[k] .+ q, B_inv, N_hf)
+        # kq_indices[k]: HF index of (excit_k + q), projected onto active subspace
+        kq_indices = [_kindex_analytic(active_k(kpoints_excit[k]) .+ active_k(q), B_inv, Ns_hf)
                       for k in 1:Nk_excit]
 
         H, triples = _build_heff_ph_excitation(
