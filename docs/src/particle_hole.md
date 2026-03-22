@@ -403,39 +403,91 @@ On the Slater-determinant ground state, Wick's theorem decomposes these into all
 - The external $f_{\mathbf{k}+\mathbf{q}, n}$ ($n \in$ unocc): $\bar{n}_n = 0$, so it cannot pair with any $f^\dagger$ through a Wick contraction — it must "annihilate" against an $f^\dagger$ with matching momentum and band index via the anticommutation relation
 - The external $f^\dagger_{\mathbf{k}, n_0}$ ($n_0 \in$ occ): $\bar{n}_{n_0} = 1$, so it can pair normally with a matching $f$
 
-Therefore, in the six-operator expectation value, $f_{\mathbf{k}+\mathbf{q}, n}$ and $f^\dagger_{\mathbf{k}, n_0}$ must respectively match with the corresponding $f^\dagger$ and $f$ among the four internal operators via delta functions. The remaining internal pair then contracts with the Fermi sea.
+Therefore, in the six-operator expectation value, $f_{\mathbf{k}+\mathbf{q}, n}$ must pair with one of the internal $f^\dagger$ operators, and $f^\dagger_{\mathbf{k}, n_0}$ must pair with one of the internal $f$ operators. The remaining internal pair then contracts with the Fermi sea (self-energy type) or is directly fixed by external quantum numbers (genuine particle-hole scattering).
 
-**Analysis of the four terms** (Term (I-a) detailed; the others are analogous):
+**Analysis of the four terms** (Term (I-a) detailed; the others below):
 
 #### Term (I-a): Fix $\mathbf{p}_2 = \mathbf{p}+\mathbf{q}$, $m_2 = n'$
+
+Six-operator structure (labeling operator positions 1–6 for sign tracking):
+
+```math
+\underset{(1)}{f^\dagger_{\mathbf{k}, n_0}}\, \underset{(2)}{f_{\mathbf{k}+\mathbf{q}, n}}\, \underset{(3)}{f^\dagger_{\mathbf{p}_1,m_1}}\, \underset{(4)}{f_{\mathbf{p}, n_0'}}\, \underset{(5)}{f^\dagger_{\mathbf{p}_3,m_3}}\, \underset{(6)}{f_{\mathbf{p}_4,m_4}}
+```
+
+The external annihilator $f_{(2)}$ ($n \in$ unocc) can pair with either of the two internal $f^\dagger$'s: $f^\dagger_{(3)}$ or $f^\dagger_{(5)}$. For each such pairing, the external creator $f^\dagger_{(1)}$ ($n_0 \in$ occ) can pair with any remaining internal $f$. This generates **four** distinct contractions, falling into three classes:
+
+**Contraction (α)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 4),\; (5 \leftrightarrow 6)$
+
+Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_3 = \mathbf{p}_4$, $m_3 = m_4$, $\bar{n}_{m_3} \neq 0$. The sum over $m_3 \in$ occ produces a density matrix — this is part of the Hartree-Fock self-energy correction to the particle energy. [Self-energy type]
+
+**Contraction (β)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 4),\; (3 \leftrightarrow 6)$
+
+Requires $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_1 = \mathbf{p}_4$, $m_1 = m_4$, $\bar{n}_{m_1} \neq 0$. Also a self-energy correction type. [Self-energy type]
+
+**Contraction (γ-A)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 6),\; (5 \leftrightarrow 4)$
+
+Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{p}_4 = \mathbf{k}$, $m_4 = n_0$; $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
+
+This is a **genuine particle-hole scattering** term — all four band indices ($n, n_0, n', n_0'$) are explicitly fixed, with no Fermi-sea summation.
+
+Momentum check: $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2 = (\mathbf{k}+\mathbf{q}) + \mathbf{p} - (\mathbf{p}+\mathbf{q}) = \mathbf{k}$ ✓.
+
+$V$ tensor: $\widetilde{V}_{m_1, m_2, m_3, m_4} = \widetilde{V}_{n, n', n_0', n_0}(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p})$.
+
+Sign computation: the pairing permutation $(2,3)(5,4)(1,6)$ relative to the canonical order $(1,2,3,4,5,6)$ has signature $(-1)^3 = -1$.
+
+**Contraction (γ-B)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 6),\; (3 \leftrightarrow 4)$
+
+Requires $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{p}_4 = \mathbf{k}$, $m_4 = n_0$; $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
+
+Also a **genuine particle-hole scattering** term.
+
+Momentum check: $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2 = \mathbf{p} + (\mathbf{k}+\mathbf{q}) - (\mathbf{p}+\mathbf{q}) = \mathbf{k}$ ✓.
+
+$V$ tensor: $\widetilde{V}_{m_1, m_2, m_3, m_4} = \widetilde{V}_{n_0', n', n, n_0}(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})$.
+
+Sign computation: the pairing permutation $(2,5)(3,4)(1,6)$ has signature $(-1)^2 = +1$.
+
+> **Critical observation**: Term (I-a) produces **two** distinct genuine particle-hole scattering contractions (γ-A and γ-B), arising because $f_{(2)}$ can pair with *either* internal $f^\dagger$. These two contractions involve $\widetilde{V}$ evaluated at **different momentum arguments**: $(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p})$ for γ-A versus $(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})$ for γ-B.
+
+#### Term (II-a): Fix $\mathbf{p}_4 = \mathbf{p}+\mathbf{q}$, $m_4 = n'$
 
 Six-operator structure:
 
 ```math
-\langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\, f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}, n_0'}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}\, |G\rangle
+\underset{(1)}{f^\dagger_{\mathbf{k}, n_0}}\, \underset{(2)}{f_{\mathbf{k}+\mathbf{q}, n}}\, \underset{(3)}{f^\dagger_{\mathbf{p}_1,m_1}}\, \underset{(4)}{f_{\mathbf{p}_2,m_2}}\, \underset{(5)}{f^\dagger_{\mathbf{p}_3,m_3}}\, \underset{(6)}{f_{\mathbf{p}, n_0'}}
 ```
 
-Three classes of surviving contractions:
+By the same logic, there are two self-energy contractions and two γ-type contractions:
 
-**Contraction (α)**: $f_{\mathbf{k}+\mathbf{q}, n} \leftrightarrow f^\dagger_{\mathbf{p}_1,m_1}$, $f^\dagger_{\mathbf{k}, n_0} \leftrightarrow f_{\mathbf{p}, n_0'}$, $f^\dagger_{\mathbf{p}_3,m_3} \leftrightarrow f_{\mathbf{p}_4,m_4}$
+**Contraction (γ-A)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 4),\; (5 \leftrightarrow 6)$
 
-Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_3 = \mathbf{p}_4$, $m_3 = m_4$, $\bar{n}_{m_3} \neq 0$.
+$\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{p}_2 = \mathbf{k}$, $m_2 = n_0$; $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
 
-The sum over $m_3 \in$ occ produces a density matrix — this is part of the Hartree-Fock self-energy correction to the particle energy.
+$\mathbf{p}_4 = (\mathbf{k}+\mathbf{q}) + \mathbf{p} - \mathbf{k} = \mathbf{p}+\mathbf{q}$ ✓.
 
-**Contraction (β)**: $f_{\mathbf{k}+\mathbf{q}, n} \leftrightarrow f^\dagger_{\mathbf{p}_3,m_3}$, $f^\dagger_{\mathbf{k}, n_0} \leftrightarrow f_{\mathbf{p}, n_0'}$, $f^\dagger_{\mathbf{p}_1,m_1} \leftrightarrow f_{\mathbf{p}_4,m_4}$
+$V$ tensor: $\widetilde{V}_{n, n_0, n_0', n'}(\mathbf{k}+\mathbf{q},\, \mathbf{k},\, \mathbf{p})$.
 
-Requires $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_1 = \mathbf{p}_4$, $m_1 = m_4$, $\bar{n}_{m_1} \neq 0$.
+Sign: the pairing permutation $(2,3)(1,4)(5,6)$ has signature $(-1)^2 = +1$.
 
-This is also a self-energy correction type.
+**Contraction (γ-B)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 4),\; (3 \leftrightarrow 6)$
 
-**Contraction (γ)**: $f_{\mathbf{k}+\mathbf{q}, n} \leftrightarrow f^\dagger_{\mathbf{p}_1,m_1}$, $f^\dagger_{\mathbf{k}, n_0} \leftrightarrow f_{\mathbf{p}_4,m_4}$, $f^\dagger_{\mathbf{p}_3,m_3} \leftrightarrow f_{\mathbf{p}, n_0'}$
+$\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{p}_2 = \mathbf{k}$, $m_2 = n_0$; $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
 
-Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{p}_4 = \mathbf{k}$, $m_4 = n_0$; $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, $\bar{n}_{n_0'} = 1$.
+$\mathbf{p}_4 = \mathbf{p} + (\mathbf{k}+\mathbf{q}) - \mathbf{k} = \mathbf{p}+\mathbf{q}$ ✓.
 
-This is a **genuine particle-hole scattering** term — it does not involve a density-matrix summation over the Fermi sea, but rather describes the particle and hole scattering through the interaction.
+$V$ tensor: $\widetilde{V}_{n_0', n_0, n, n'}(\mathbf{p},\, \mathbf{k},\, \mathbf{k}+\mathbf{q})$.
 
-After performing the analogous analysis for all four terms (I-a), (I-b), (II-a), (II-b), the contributions fall into two classes.
+Sign: the pairing permutation $(2,5)(1,4)(3,6)$ has signature $(-1)^3 = -1$.
+
+#### Terms (I-b) and (II-b): No genuine particle-hole scattering contributions
+
+In Term (I-b), the delta fixes $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, producing the internal operator string $-f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}$. Any γ-type contraction that does not fix $\mathbf{k} = \mathbf{p}$ necessarily leaves the pair $f^\dagger_{\mathbf{p}+\mathbf{q}, n'}$ to contract with the Fermi sea. Since $n' \in$ unocc implies $\bar{n}_{n'} = 0$, these contractions vanish identically.
+
+The same argument applies to Term (II-b), where the delta fixes $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, leaving $f^\dagger_{\mathbf{p}+\mathbf{q}, n'}$ (unocc) in the remaining internal pair.
+
+**Therefore, the genuine particle-hole scattering kernel receives contributions only from Terms (I-a) and (II-a), each of which contributes two γ contractions.**
 
 ### 5.5 Combining the Results
 
@@ -447,21 +499,42 @@ After performing the analogous analysis for all four terms (I-a), (I-b), (II-a),
 
 This is the free particle-hole pair energy: particle energy minus hole energy.
 
-**(B) Particle-hole interaction kernel**: From contractions of type (γ) (external particle operator paired with an internal $f^\dagger$, external hole operator paired with an internal $f$, no Fermi-sea contraction). These are the genuine residual interactions that cannot be absorbed into the mean field. **These terms do not require $n_0 = n_0'$** — the interaction kernel couples different hole bands.
+**(B) Particle-hole interaction kernel**: From the four γ contractions identified in §5.4 — two from Term (I-a) and two from Term (II-a). These involve no Fermi-sea summation and all four band indices ($n, n_0, n', n_0'$) are explicitly fixed. **These terms do not require $n_0 = n_0'$** — the interaction kernel couples different hole bands.
 
 ### 5.6 Two Topologies of the Particle-Hole Interaction Kernel
 
+The four γ contractions are classified into two topologies based on the **momentum transfer within each bilinear pair** of the interaction vertex $c^\dagger_{\mathbf{k}_1 a}\, c_{\mathbf{k}_2 b}\, c^\dagger_{\mathbf{k}_3 c}\, c_{\mathbf{k}_4 d}$:
+
+- **Direct (density) topology**: momentum transfer $\mathbf{k}_1 - \mathbf{k}_2 = \mathbf{k} - \mathbf{p}$, the relative momentum between hole and particle. The particle and hole lines run in parallel.
+- **Exchange topology**: momentum transfer $\mathbf{k}_1 - \mathbf{k}_2 = \pm\mathbf{q}$, the total particle-hole pair momentum. The particle and hole lines cross.
+
+Inspecting the $V$ arguments of each γ contraction:
+
+| Contraction | $V$ momenta $(\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3)$ | $\mathbf{k}_1 - \mathbf{k}_2$ | Topology | Sign |
+|---|---|---|---|---|
+| (I-a)-γA | $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ | $\mathbf{k}-\mathbf{p}$ | Direct | $-1$ |
+| (II-a)-γB | $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$ | $\mathbf{p}-\mathbf{k}$ | Direct | $-1$ |
+| (II-a)-γA | $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ | $\mathbf{q}$ | Exchange | $+1$ |
+| (I-a)-γB | $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$ | $-\mathbf{q}$ | Exchange | $+1$ |
+
+Each channel receives **two contributions** involving $\widetilde{V}$ at **different momentum arguments**.
+
 **(B1) Direct channel (density channel)** $\mathcal{K}^{\text{d}}$:
 
-From the type-(γ) contractions in terms (I-a) and (II-a). Physical process: the interaction line connects the particle and hole lines, each scattering without exchange.
+From (I-a)-γA and (II-a)-γB. Physical process: the interaction line connects the particle and hole lines, each scattering without exchange.
 
 ```math
 \boxed{
-\mathcal{K}^{\text{d},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = -\frac{1}{N}\sum_{abcd} U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn'}(\mathbf{p}+\mathbf{q})\, U^*_{cn_0'}(\mathbf{p})\, U_{dn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{p}+\mathbf{q}, \mathbf{p})
+\begin{aligned}
+\mathcal{K}^{\text{d},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = -\frac{1}{N}\sum_{abcd} \Big[
+& U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn'}(\mathbf{p}+\mathbf{q})\, U^*_{cn_0'}(\mathbf{p})\, U_{dn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p}) \\
++\; & U^*_{an_0'}(\mathbf{p})\, U_{bn_0}(\mathbf{k})\, U^*_{cn}(\mathbf{k}+\mathbf{q})\, U_{dn'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{p},\, \mathbf{k},\, \mathbf{k}+\mathbf{q})
+\Big]
+\end{aligned}
 }
 ```
 
-Feynman diagram:
+Feynman diagram (both contributions have the same topology):
 
 ```
   particle: (p+q, n') ──[V]──▸ (k+q, n)
@@ -469,21 +542,31 @@ Feynman diagram:
   hole:     (k, n₀)   ──[V]──▸ (p, n₀')
 ```
 
-Momentum conservation check: in $\widetilde{V}^{abcd}(\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3)$, $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$ (corresponding to $c^\dagger_a$, particle out), $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$ (corresponding to $c_b$, particle in), $\mathbf{k}_3 = \mathbf{p}$ (corresponding to $c^\dagger_c$, hole out), $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2 = \mathbf{k}$ (corresponding to $c_d$, hole in). ✓
+**First term** (from (I-a)-γA): $\widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{p}+\mathbf{q}, \mathbf{p})$, where the first bilinear pair $(a,b)$ of the interaction connects particle-out and particle-in, and the second pair $(c,d)$ connects hole-out and hole-in.
 
-Band-index-to-momentum consistency (Appendix C convention): $a \leftrightarrow n$ at $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$; $b \leftrightarrow n'$ at $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$; $c \leftrightarrow n_0'$ at $\mathbf{k}_3 = \mathbf{p}$; $d \leftrightarrow n_0$ at $\mathbf{k}_4 = \mathbf{k}$. ✓
+**Second term** (from (II-a)-γB): $\widetilde{V}^{abcd}(\mathbf{p}, \mathbf{k}, \mathbf{k}+\mathbf{q})$, where the first pair $(a,b)$ connects hole-out and hole-in, and the second pair $(c,d)$ connects particle-out and particle-in. This is the same physical process with the roles of the two bilinear pairs in $H_{\text{int}}$ swapped.
+
+Momentum conservation checks:
+
+- First term: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{k}_3 = \mathbf{p}$, $\mathbf{k}_4 = \mathbf{k}$. ✓
+- Second term: $\mathbf{k}_1 = \mathbf{p}$, $\mathbf{k}_2 = \mathbf{k}$, $\mathbf{k}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_4 = \mathbf{p}+\mathbf{q}$. ✓
 
 **(B2) Exchange channel** $\mathcal{K}^{\text{x}}$:
 
-From the line-crossing contractions in terms (I-a) and (II-b) (or (I-b) and (II-a)).
+From (II-a)-γA and (I-a)-γB. Physical process: the particle and hole lines cross through the interaction vertex.
 
 ```math
 \boxed{
-\mathcal{K}^{\text{x},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = +\frac{1}{N}\sum_{abcd} U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn_0}(\mathbf{k})\, U^*_{cn_0'}(\mathbf{p})\, U_{dn'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{k}, \mathbf{p})
+\begin{aligned}
+\mathcal{K}^{\text{x},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = +\frac{1}{N}\sum_{abcd} \Big[
+& U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn_0}(\mathbf{k})\, U^*_{cn_0'}(\mathbf{p})\, U_{dn'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q},\, \mathbf{k},\, \mathbf{p}) \\
++\; & U^*_{an_0'}(\mathbf{p})\, U_{bn'}(\mathbf{p}+\mathbf{q})\, U^*_{cn}(\mathbf{k}+\mathbf{q})\, U_{dn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})
+\Big]
+\end{aligned}
 }
 ```
 
-Feynman diagram (line crossing):
+Feynman diagram (both contributions have the same topology):
 
 ```
   particle: (p+q, n') ──╲    ╱──▸ (k+q, n)
@@ -493,11 +576,36 @@ Feynman diagram (line crossing):
   hole:     (k, n₀)   ──╱    ╲──▸ (p, n₀')
 ```
 
-Momentum conservation check: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$ (corresponding to $c^\dagger_a$, particle out), $\mathbf{k}_2 = \mathbf{k}$ (corresponding to $c_b$, hole in), $\mathbf{k}_3 = \mathbf{p}$ (corresponding to $c^\dagger_c$, hole out), $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2 = \mathbf{p}+\mathbf{q}$ (corresponding to $c_d$, particle in). ✓
+**First term** (from (II-a)-γA): $\widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{k}, \mathbf{p})$, where the first pair $(a,b)$ connects particle-out to hole-in, and the second pair $(c,d)$ connects hole-out to particle-in.
 
-Band-index-to-momentum consistency (Appendix C convention): $a \leftrightarrow n$ at $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$; $b \leftrightarrow n_0$ at $\mathbf{k}_2 = \mathbf{k}$; $c \leftrightarrow n_0'$ at $\mathbf{k}_3 = \mathbf{p}$; $d \leftrightarrow n'$ at $\mathbf{k}_4 = \mathbf{p}+\mathbf{q}$. ✓
+**Second term** (from (I-a)-γB): $\widetilde{V}^{abcd}(\mathbf{p}, \mathbf{p}+\mathbf{q}, \mathbf{k}+\mathbf{q})$, the same topology with swapped bilinear pair roles.
+
+Momentum conservation checks:
+
+- First term: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_2 = \mathbf{k}$, $\mathbf{k}_3 = \mathbf{p}$, $\mathbf{k}_4 = \mathbf{p}+\mathbf{q}$. ✓
+- Second term: $\mathbf{k}_1 = \mathbf{p}$, $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{k}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_4 = \mathbf{k}$. ✓
 
 > **Note on signs**: The direct channel carries a minus sign and the exchange channel carries a plus sign, arising from the relative fermion signs in the different contraction topologies. The specific signs depend on the operator ordering convention ($c^\dagger c c^\dagger c$) of the original Hamiltonian and the number of fermion line crossings in the Wick contractions.
+
+> **Physical origin of the two terms per channel**: The Hamiltonian $H_{\text{int}} = \frac{1}{N}\sum V^{abcd} c^\dagger_a c_b c^\dagger_c c_d$ contains two bilinear pairs: $(c^\dagger_a c_b)$ and $(c^\dagger_c c_d)$. When computing $[H_{\text{int}}, f^\dagger f]$, Part I of the commutator (§5.3) acts on the first pair, while Part II acts on the second pair. For each topology (direct or exchange), the external operators can match against *either* bilinear pair of $H_{\text{int}}$, generating two contributions with different $V$ momentum arguments. This is a direct consequence of the $c^\dagger c c^\dagger c$ ordering — unlike the normal-ordered $\frac{1}{2}c^\dagger c^\dagger cc$ form where antisymmetry absorbs this doubling into a factor of 2.
+
+### 5.6.1 Simplification for On-Site Interactions
+
+For **on-site interactions** (e.g., Hubbard, Kanamori), $\widetilde{V}^{abcd}$ is independent of momenta. In this case, the second term in each channel can be related to the first by relabeling dummy orbital indices $a \leftrightarrow c$, $b \leftrightarrow d$:
+
+```math
+\text{Second term of } \mathcal{K}^{\text{d}}: \quad \sum_{abcd} [\cdots]\, \widetilde{V}^{abcd} \xrightarrow{a\leftrightarrow c,\, b\leftrightarrow d} \sum_{abcd} [\cdots]\, \widetilde{V}^{cdab}
+```
+
+so the direct kernel becomes
+
+```math
+\mathcal{K}^{\text{d}} \propto \sum_{abcd} U^*_{an}\, U_{bn'}\, U^*_{cn_0'}\, U_{dn_0} \left[\widetilde{V}^{abcd} + \widetilde{V}^{cdab}\right]
+```
+
+and similarly for $\mathcal{K}^{\text{x}}$. This is equivalent to replacing $\widetilde{V}$ by a "particle-exchange-symmetrized" interaction $\bar{V}^{abcd} = \widetilde{V}^{abcd} + \widetilde{V}^{cdab}$.
+
+> **Warning**: For **momentum-dependent interactions** (including on-site interactions in a reduced Brillouin zone, e.g., after magnetic unit cell folding), the two $V$ terms have genuinely different momentum arguments and **cannot** be combined by simple relabeling. They must be evaluated separately.
 
 ### 5.7 Final Result
 
@@ -510,10 +618,10 @@ Band-index-to-momentum consistency (Appendix C convention): $a \leftrightarrow n
 where:
 
 - **First term**: free particle-hole pair energy (entirely from the mean field), diagonal in all indices
-- **Second term**: direct channel kernel $\mathcal{K}^{\text{d}}$, with $\widetilde{V}$ three-momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$
-- **Third term**: exchange channel kernel $\mathcal{K}^{\text{x}}$, with $\widetilde{V}$ three-momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$
+- **Second term**: direct channel kernel $\mathcal{K}^{\text{d}}$, with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$
+- **Third term**: exchange channel kernel $\mathcal{K}^{\text{x}}$, with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$
 
-In the general case both terms contribute. Depending on the symmetries of a specific model, one of them may vanish. **Both kernel terms couple different hole bands** ($n_0 \neq n_0'$), which is essential for correctly describing collective excitations involving multiple valence bands.
+In the general case both channels contribute. Depending on the symmetries of a specific model, one of them may vanish. **Both kernel terms couple different hole bands** ($n_0 \neq n_0'$), which is essential for correctly describing collective excitations involving multiple valence bands.
 
 ---
 
@@ -562,7 +670,7 @@ The eigenvalues $\varepsilon_\mu(\mathbf{q})$ give the dispersion relation of co
 2. **Construct the effective Hamiltonian**:
    - For each $\mathbf{q}$, build the matrix $\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})$ with composite index $(\mathbf{k}, n_0, n)$
    - Diagonal part: $\delta_{\mathbf{k}\mathbf{p}}\,\delta_{n_0 n_0'}\,\delta_{nn'}(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k})$
-   - Off-diagonal part: $\mathcal{K}^{\text{d}} + \mathcal{K}^{\text{x}}$ (using the $U$ matrix to transform from orbital space to band space)
+   - Off-diagonal part: $\mathcal{K}^{\text{d}} + \mathcal{K}^{\text{x}}$, each containing two $\widetilde{V}$ terms at different momentum arguments (see §5.6)
 
 3. **Diagonalize the effective Hamiltonian**:
    - $\mathcal{H}^{\text{eff}}\, \psi = \varepsilon\, \psi$
@@ -616,6 +724,13 @@ The interaction $\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)$ i
 
 where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$.
 
-The convention is that each orbital index in $\widetilde{V}^{abcd}$ is contracted with the $U$ matrix evaluated at the **corresponding momentum**: $a$ with $U^*(\mathbf{k}_1)$, $b$ with $U(\mathbf{k}_2)$, $c$ with $U^*(\mathbf{k}_3)$, $d$ with $U(\mathbf{k}_4)$. The boxed formulas for $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$ in §5.6 follow this convention exactly.
+The convention is that each orbital index in $\widetilde{V}^{abcd}$ is contracted with the $U$ matrix evaluated at the **corresponding momentum**: $a$ with $U^*(\mathbf{k}_1)$, $b$ with $U(\mathbf{k}_2)$, $c$ with $U^*(\mathbf{k}_3)$, $d$ with $U(\mathbf{k}_4)$. The boxed formulas for $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$ in §5.6 follow this convention exactly: each of the two $\widetilde{V}$ terms within each kernel has its own momentum assignment and its own $U$-matrix mapping.
 
-When constructing $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$, only the components of $\widetilde{V}$ with specific band indices ($n, n', n_0, n_0'$) are needed. In practice, there is no need to fully transform the entire tensor — one can directly contract with the relevant columns of the $U$ matrix in orbital space.
+When constructing $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$, only the components of $\widetilde{V}$ with specific band indices ($n, n', n_0, n_0'$) are needed. In practice, there is no need to fully transform the entire tensor — one can directly contract with the relevant columns of the $U$ matrix in orbital space. Note that each kernel requires **two calls** to the interaction function $\widetilde{V}^{abcd}(\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3)$ with different momentum arguments.
+
+**Implementation note**: When implementing the kernels as matrix multiplications, care must be taken with the index grouping. For a given $\widetilde{V}^{abcd}$ term, one must identify which orbital indices are "free" (to be projected onto bands by $U^\dagger$ and $U$) and which are "contracted" (summed against specific columns of $U$). The free-index pair differs between the direct and exchange topologies:
+
+- **Direct channel**: the first pair $(a,b)$ maps to (particle-out, particle-in) or (hole-out, hole-in) — in either case, the free indices for the output matrix are $(a,b)$, and the contracted indices are $(c,d)$.
+- **Exchange channel**: the first pair $(a,b)$ maps to (particle-out, hole-in) or (hole-out, particle-in) — the free indices for the output matrix are $(a,d)$, and the contracted indices are $(b,c)$. To use a matrix multiplication, the tensor must be permuted to $(a,d,b,c)$ order before reshaping.
+
+Confusing the free-index grouping between channels is equivalent to applying the direct-channel (bubble) topology to the exchange (crossed) diagram, or vice versa.
