@@ -80,14 +80,21 @@ A triple `(k, j0, n)` is valid when:
   2. Particle band n is unoccupied at k+q:          `!occ[n, kq_indices[k]]`
   3. n ∈ n_list
 
-# Kernel formulas (§5.6):
-  K^d_{(k,j0,n),(p,j0',n')} = -(1/N) Σ_{abcd} U*_{a,n}(k+q) U_{b,n'}(p+q)
-                                                  U*_{c,n0'}(p) U_{d,n0}(k)
-                                                  Ṽ^{abcd}(k+q, p+q, p)
+# Kernel formulas (§5.6, corrected — each channel has two V terms):
+  K^d = -(1/N) Σ_{abcd} [
+      U*_{a,n}(k+q) U_{b,n'}(p+q) U*_{c,n0'}(p) U_{d,n0}(k)  Ṽ^{abcd}(k+q, p+q, p)
+    + U*_{a,n0'}(p) U_{b,n0}(k) U*_{c,n}(k+q) U_{d,n'}(p+q)  Ṽ^{abcd}(p, k, k+q)
+  ]
 
-  K^x_{(k,j0,n),(p,j0',n')} = +(1/N) Σ_{abcd} U*_{a,n}(k+q) U_{b,n0}(k)
-                                                  U*_{c,n0'}(p) U_{d,n'}(p+q)
-                                                  Ṽ^{abcd}(k+q, k, p)
+  K^x = +(1/N) Σ_{abcd} [
+      U*_{a,n}(k+q) U_{b,n0}(k) U*_{c,n0'}(p) U_{d,n'}(p+q)  Ṽ^{abcd}(k+q, k, p)
+    + U*_{a,n0'}(p) U_{b,n'}(p+q) U*_{c,n}(k+q) U_{d,n0}(k)  Ṽ^{abcd}(p, p+q, k+q)
+  ]
+
+  The two terms per channel arise from the two bilinear pairs in H_int
+  (see §5.4: contractions γ-A and γ-B from Terms (I-a) and (II-a)).
+  They involve V at genuinely different momentum arguments and cannot
+  be combined by index relabeling when V is momentum-dependent.
 
 # Returns
 - `H::Matrix{ComplexF64}` of shape (M, M) where M = number of valid triples.
@@ -140,29 +147,54 @@ function _build_heff_ph_excitation(
 
     # ── K^d + K^x: loop over (k, p) pairs, then (j0, j0') pairs ──────────────
     #
-    # For fixed (k, p), V tensors are computed once:
-    #   Vd = Ṽ(k+q, p+q, p)
-    #   Vx = Ṽ(k+q, k,   p)
+    # §5.6 kernel formulas — each channel receives TWO V contributions from
+    # the two bilinear pairs of H_int (γ-A and γ-B contractions in §5.4).
     #
-    # For each (j0, j0') pair with n0 = n0_list[j0], n0' = n0_list[j0']:
+    # For fixed (k, p), four V tensors are computed once:
+    #   Vd1 = Ṽ(k+q, p+q, p)       direct  term 1  [from (I-a)-γA]
+    #   Vd2 = Ṽ(p,   k,   k+q)     direct  term 2  [from (II-a)-γB]
+    #   Vx1 = Ṽ(k+q, k,   p)       exchange term 1  [from (II-a)-γA]
+    #   Vx2 = Ṽ(p,   p+q, k+q)     exchange term 2  [from (I-a)-γB]
     #
-    #   A_d[a,b] = Σ_{cd} Vd[a,b,c,d] · conj(U_{c,n0'}(p)) · U_{d,n0}(k)
-    #            = reshape(Vd_r · kron(U_n0_k, conj(U_n0p_p)), norb, norb)
-    #     where Vd_r = reshape(Vd, norb², norb²),
-    #           kron(U_n0_k, conj(U_n0p_p))[(d-1)*norb+c] = U_n0_k[d]·conj(U_n0p_p[c])  ✓
+    # ── Direct channel ──
+    # K^d = -(1/N) [term1 + term2], where:
     #
-    #   A_x[a,d] = Σ_{bc} Vx[a,b,c,d] · U_{b,n0}(k) · conj(U_{c,n0'}(p))
-    #            = reshape(Vx_r · kron(conj(U_n0p_p), U_n0_k), norb, norb)
-    #     where Vx_r = reshape(permutedims(Vx,(1,4,2,3)), norb², norb²)
-    #           and permutedims(Vx,(1,4,2,3))[a,d,b,c] = Vx[a,b,c,d]  ✓
-    #           kron(conj(U_n0p_p), U_n0_k)[(c-1)*norb+b] = conj(U_n0p_p[c])·U_n0_k[b]  ✓
+    #   term1: Σ_{abcd} U*_an(k+q) U_bn'(p+q) U*_cn0'(p) U_dn0(k) Vd1[a,b,c,d]
+    #     Free indices (a,b) → projected by U†(k+q) and U(p+q)
+    #     Contracted (c,d): A_d1[a,b] = Σ_{cd} Vd1[a,b,c,d] conj(U_cn0'(p)) U_dn0(k)
+    #     Vd1_r = reshape(Vd1, norb², norb²)  → rows=(a,b), cols=(c,d)
+    #     kron_A = kron(U_n0_k, conj(U_n0p_p))  → index (c,d): U_n0_k[d]·conj(U_n0p_p[c])
     #
-    # Then for the (k,j0) × (p,j0') block of H:
-    #   H[row_idx(k,j0), row_idx(p,j0')] +=
-    #       (1/Nk) · U_kq[:,ns_k]' · (A_x - A_d) · U_pq[:,ns_p]
+    #   term2: Σ_{abcd} U*_an0'(p) U_bn0(k) U*_cn(k+q) U_dn'(p+q) Vd2[a,b,c,d]
+    #     Free indices (c,d) → projected by U†(k+q) and U(p+q)
+    #     Contracted (a,b): A_d2[c,d] = Σ_{ab} Vd2[a,b,c,d] conj(U_an0'(p)) U_bn0(k)
+    #     Vd2_r = reshape(permutedims(Vd2,(3,4,1,2)), norb², norb²)  → rows=(c,d), cols=(a,b)
+    #     same kron_A but now contracted over (a,b): U_n0_k[b]·conj(U_n0p_p[a]) ✓
     #
-    # where U_kq[:,ns_k] = eigenvectors[:,ns_k, kq_indices[k]] collects the
-    # particle-out columns, and similarly for U_pq.
+    #   Both terms use the same kron vector, so: A_d = reshape((Vd1_r + Vd2_r) * kron_A, …)
+    #
+    # ── Exchange channel ──
+    # K^x = +(1/N) [term1 + term2], where:
+    #
+    #   term1: Σ_{abcd} U*_an(k+q) U_bn0(k) U*_cn0'(p) U_dn'(p+q) Vx1[a,b,c,d]
+    #     Free (a,d) → projected by U†(k+q) and U(p+q)
+    #     Contracted (b,c): A_x1[a,d] = Σ_{bc} Vx1[a,b,c,d] U_bn0(k) conj(U_cn0'(p))
+    #     Vx1_r = reshape(permutedims(Vx1,(1,4,2,3)), norb², norb²)  → rows=(a,d), cols=(b,c)
+    #     kron_B = kron(conj(U_n0p_p), U_n0_k)  → index (b,c): conj(U_n0p_p[c])·U_n0_k[b]
+    #
+    #   term2: Σ_{abcd} U*_an0'(p) U_bn'(p+q) U*_cn(k+q) U_dn0(k) Vx2[a,b,c,d]
+    #     Free (c,b) → projected by U†(k+q) [on c] and U(p+q) [on b]
+    #     Contracted (a,d): A_x2[c,b] = Σ_{ad} Vx2[a,b,c,d] conj(U_an0'(p)) U_dn0(k)
+    #     Vx2_r = reshape(permutedims(Vx2,(3,2,1,4)), norb², norb²)  → rows=(c,b), cols=(a,d)
+    #     kron_A = kron(U_n0_k, conj(U_n0p_p))  → index (a,d): U_n0_k[d]·conj(U_n0p_p[a])
+    #
+    #   The two exchange terms use different kron vectors, so they are computed
+    #   separately and added: A_x = A_x1 + A_x2.
+    #
+    # ── Final assembly ──
+    # H[rows_k, rows_p] += (1/Nk) U_kq' * (A_x - A_d) * U_pq
+
+    norb2 = norb^2
 
     for k in 1:Nk_excit
         kq   = kq_indices[k]
@@ -172,14 +204,22 @@ function _build_heff_ph_excitation(
             pq   = kq_indices[p]
             p_hf = excit_to_hf[p]
 
-            Vd_raw = V_k_full(kpoints[kq], kpoints[pq], kpoints[p_hf])
-            Vx_raw = V_k_full(kpoints[kq], kpoints[k_hf], kpoints[p_hf])
+            # Four V tensor evaluations (one per γ contraction, §5.4)
+            Vd1_raw = V_k_full(kpoints[kq], kpoints[pq],   kpoints[p_hf])  # (k+q, p+q, p)
+            Vd2_raw = V_k_full(kpoints[p_hf], kpoints[k_hf], kpoints[kq]) # (p,   k,   k+q)
+            Vx1_raw = V_k_full(kpoints[kq], kpoints[k_hf], kpoints[p_hf]) # (k+q, k,   p)
+            Vx2_raw = V_k_full(kpoints[p_hf], kpoints[pq],  kpoints[kq])  # (p,   p+q, k+q)
 
-            Vd = Vd_raw .+ permutedims(Vd_raw, (3, 4, 1, 2))
-            Vx = Vx_raw .+ permutedims(Vx_raw, (3, 4, 1, 2))
+            # Reshape V tensors for matrix multiplication:
+            #   direct:   free indices (a,b) or (c,d), contracted = complement
+            #   exchange: free indices (a,d) or (c,b), contracted = complement
+            Vd1_r = reshape(Vd1_raw, norb2, norb2)                                # (a,b)×(c,d)
+            Vd2_r = reshape(permutedims(Vd2_raw, (3, 4, 1, 2)), norb2, norb2)     # (c,d)×(a,b)
+            Vx1_r = reshape(permutedims(Vx1_raw, (1, 4, 2, 3)), norb2, norb2)     # (a,d)×(b,c)
+            Vx2_r = reshape(permutedims(Vx2_raw, (3, 2, 1, 4)), norb2, norb2)     # (c,b)×(a,d)
 
-            Vd_r = reshape(Vd, norb^2, norb^2)
-            Vx_r = reshape(permutedims(Vx, (1,4,2,3)), norb^2, norb^2)
+            # Combined direct reshaped matrix (both terms use the same kron vector)
+            Vd_combined = Vd1_r + Vd2_r
 
             for j0 in 1:Nn0
                 slot_k  = (k - 1) * Nn0 + j0
@@ -201,8 +241,20 @@ function _build_heff_ph_excitation(
                     ns_p     = n_bands[slot_p]
                     U_pq_mat = eigenvectors[:, ns_p, pq]  # norb × |ns_p|
 
-                    A_d = reshape(Vd_r * kron(U_n0_k,        conj(U_n0p_p)), norb, norb)
-                    A_x = reshape(Vx_r * kron(conj(U_n0p_p), U_n0_k),        norb, norb)
+                    # kron vectors for orbital-index contraction
+                    # kron_A[(c/a) + (d/b - 1)*norb] = U_n0_k[d/b] · conj(U_n0p_p[c/a])
+                    # kron_B[(b) + (c - 1)*norb]     = conj(U_n0p_p[c]) · U_n0_k[b]
+                    kron_A = kron(U_n0_k,        conj(U_n0p_p))
+                    kron_B = kron(conj(U_n0p_p), U_n0_k)
+
+                    # Direct: A_d[free1, free2] where free = (a,b) from term1, (c,d) from term2
+                    # Both project onto particle bands via U_kq' * ... * U_pq
+                    A_d = reshape(Vd_combined * kron_A, norb, norb)
+
+                    # Exchange: two terms with different kron vectors
+                    A_x1 = reshape(Vx1_r * kron_B, norb, norb)   # free=(a,d)
+                    A_x2 = reshape(Vx2_r * kron_A, norb, norb)   # free=(c,b)
+                    A_x  = A_x1 + A_x2
 
                     H[rows_k, rows_p] .+= (U_kq_mat' * (A_x - A_d) * U_pq_mat) ./ Nk_excit
                 end
