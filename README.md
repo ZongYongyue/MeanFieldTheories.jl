@@ -11,14 +11,14 @@ See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl/dev
 
 ```julia
 using Pkg
-Pkg.develop(url="https://github.com/Quantum-Many-Body/MeanFieldTheories.jl")
+Pkg.add("MeanFieldTheories")
 ```
 
 ## Quick Start: AFM Magnon Dispersion
 
 ![AFM Magnon](docs/src/fig/magnon_dispersion.png)
 
-This example computes the magnon (spin-wave) dispersion of a Néel antiferromagnet on a square lattice, demonstrating the full workflow: Hamiltonian construction, self-consistent Hartree-Fock, and collective excitation spectrum via RPA. The RPA magnon dispersion (right panel) shows a gapless Goldstone mode at $\Gamma$, confirming the spontaneous breaking of SU(2) spin symmetry in the Néel state. The left panel shows the mean-field quasiparticle bands with the Mott gap.
+This example computes the magnon (bound states of particle-hole excitations) dispersion of a Néel antiferromagnet on a square lattice, demonstrating the full workflow: Hamiltonian construction, self-consistent Hartree-Fock, and collective excitation spectrum via RPA. The RPA magnon dispersion (right panel) shows a gapless Goldstone mode at $\Gamma$, confirming the spontaneous breaking of SU(2) spin symmetry in the Néel state. The left panel shows the mean-field quasiparticle bands with the Mott gap.
 
 The Hubbard model at half-filling with $U/t = 12$ on a $\sqrt{2} \times \sqrt{2}$ rotated magnetic unit cell (2 sublattices, 4 orbitals per cell):
 
