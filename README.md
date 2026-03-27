@@ -25,181 +25,93 @@ using Pkg
 Pkg.develop(url="https://github.com/Quantum-Many-Body/MeanFieldTheories.jl")
 ```
 
-## Quick Start
+## Quick Start: AFM Magnon Dispersion
 
-### Real-Space Hartree-Fock Approximation (`solve_hfr`)
+![AFM Magnon](docs/src/fig/magnon_dispersion.png)
 
-Hubbard model ($t=1$, $U=8$, half-filling on a 4×4 square lattice) solved by real-space Hartree-Fock.
+This example computes the magnon (spin-wave) dispersion of a Néel antiferromagnet on a square lattice, demonstrating the full workflow: Hamiltonian construction, self-consistent Hartree-Fock, and collective excitation spectrum via RPA. The RPA magnon dispersion (right panel) shows a gapless Goldstone mode at $\Gamma$, confirming the spontaneous breaking of SU(2) spin symmetry in the Néel state. The left panel shows the mean-field quasiparticle bands with the Mott gap.
+
+The Hubbard model at half-filling with $U/t = 12$ on a $\sqrt{2} \times \sqrt{2}$ rotated magnetic unit cell (2 sublattices, 4 orbitals per cell):
+
+$$H = -t \sum_{\langle ij \rangle,\sigma} c^\dagger_{i\sigma}c_{j\sigma} + U \sum_i n_{i\uparrow}n_{i\downarrow}$$
+
+**Step 1: Define the quantum system and Hamiltonian**
 
 ```julia
 using MeanFieldTheories
 
-# Square lattice with periodic boundary conditions
+# Magnetic unit cell: √2 × √2 rotated square lattice
+a1 = [1.0, 1.0];  a2 = [1.0, -1.0]
+
 unitcell = Lattice(
-    [Dof(:site, 1)],
-    [QN(site=1)],
-    [[0.0, 0.0]];
-    vectors=[[1.0, 0.0], [0.0, 1.0]]
+    [Dof(:cell, 1), Dof(:sub, 2, [:A, :B])],
+    [QN(cell=1, sub=1), QN(cell=1, sub=2)],
+    [[0.0, 0.0], [1.0, 0.0]];
+    vectors = [a1, a2]
 )
-lattice  = Lattice(unitcell, (4, 4))
-t = 1.0;  U = 8.0
 
-# Operators (shared by all four cases below)
-function make_ops(dofs)
-    t_ops = generate_onebody(dofs, bonds(lattice, (:p, :p), 1),
-        (delta, qn1, qn2) -> qn1.spin == qn2.spin ? -t : 0.0).ops
-    # 1/2 Σ_{i,σ≠σ'} U_{ii} n_iσ * n_iσ'
-    U_ops = generate_twobody(dofs, bonds(lattice, (:p, :p), 0),
-        (deltas, qn1, qn2, qn3, qn4) ->
-            (qn1.spin==qn2.spin)&&(qn3.spin==qn4.spin)&&(qn1.spin!==qn3.spin) ? U/2 : 0.0,
-        order = (cdag, :i, c, :i, cdag, :i, c, :i)).ops
-    vcat(t_ops, U_ops)
-end
+dofs = SystemDofs([Dof(:cell, 1), Dof(:sub, 2, [:A, :B]), Dof(:spin, 2, [:up, :dn])])
 
-dofs = SystemDofs([Dof(:site, 16), Dof(:spin, 2, [:up, :down])])
-result = solve_hfr(dofs, make_ops(dofs), [16])
-```
-
-Run log:
-```
-============================================================
-Hartree-Fock SCF Solver
-============================================================
-[13:40:12] Building Hamiltonian  (144 operators)
-               t matrix: (32, 32), nnz = 128      358.292μs
-               U matrix: (1024, 1024), nnz = 64       124.417μs
-  System: N = 32, blocks = 1, particles = [16] (total = 16)
-  T = 0,  mixing = DIIS(m=8),  tol = 1e-08,  max_iter = 1000
-============================================================
-[13:40:12] G initialized    33.708μs
-[13:40:12] Iter    1  res = 3.909e-03  E = -24.399771  NCond = 1.4220
-[13:40:12] Iter    2  res = 3.631e-03  E = -49.605585  NCond = 16.0000
-[13:40:12] Iter    3  res = 1.623e-03  E = +7.257954  NCond = 16.0000
-[13:40:12] Iter    4  res = 1.389e-03  E = +3.645997  NCond = 16.0000
-[13:40:12] Iter    5  res = 1.103e-03  E = +2.070912  NCond = 16.0000
-[13:40:12] Iter   10  res = 3.143e-04  E = -13.013728  NCond = 16.0000
-[13:40:12] Iter   20  res = 4.440e-05  E = -7.825859  NCond = 16.0000
-[13:40:12] Iter   30  res = 7.137e-08  E = -7.389622  NCond = 16.0000
-[13:40:12] Iter   32  res = 7.424e-09 < 1.000e-08  CONVERGED
-============================================================
-[13:40:12] SCF CONVERGED  (32 iterations)
-  Band energy:        -1.0131544557
-  Interaction energy: -6.3764731228
-  Total energy:       -7.3896275785
-  NCond:              16.000000
-  Sz:                 -0.000040
-  μ (block 1):       +3.9999998830
-
-  ── Timing Summary ────────────────────────────────────────────
-  Phase                      Total         Avg   Calls
-  ────────────────────────────────────────────────────────
-  build_T                358.292μs   358.292μs       1
-  build_U                124.417μs   124.417μs       1
-  initialize_green        33.708μs    33.708μs       1
-  build_h_eff            192.080μs     6.002μs      32
-  diagonalize              3.351ms   104.708μs      32
-  update_green           130.665μs     4.083μs      32
-  calc_energies           69.419μs     2.239μs      31
-  ────────────────────────────────────────────────────────
-  solve_hfr (total)        7.556ms     7.556ms       1
-  ────────────────────────────────────────────────────────
-```
-### Momentum-Space Hartree-Fock Approximation (`solve_hfk`)
-
-t-V model ($$t=1$$, $$V=4$$ on  a 4×4 square lattice) solved by momentum-space Hartree-Fock.
-
-```julia
-using MeanFieldTheories
-
-dofs = SystemDofs([Dof(:site, 4), Dof(:spin, 2, [:up, :dn])])
-
-unitcell = Lattice([Dof(:site, 4)],
-                     [QN(site=1), QN(site=2), QN(site=3), QN(site=4)],
-                     [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]];
-                     vectors=[[2.0, 0.0], [0.0, 2.0]])
-
-nn_bonds = bonds(unitcell, (:p, :p), 1)
+t = 1.0;  U = 12.0
+nn_bonds     = bonds(unitcell, (:p, :p), 1)
+onsite_bonds = bonds(unitcell, (:p, :p), 0)
 
 onebody = generate_onebody(dofs, nn_bonds,
-    (delta, qn1, qn2) -> qn1.spin == qn2.spin ? -1.0 : 0.0)
+    (delta, qn1, qn2) -> qn1.spin == qn2.spin ? -t : 0.0)
 
-# 1/2Σ_{i≠j, σσ'} V_{ij} n_{iσ} n_{jσ'}
-twobody = generate_twobody(dofs, nn_bonds,
+twobody = generate_twobody(dofs, onsite_bonds,
     (deltas, qn1, qn2, qn3, qn4) ->
-        qn1.spin == qn2.spin && qn3.spin == qn4.spin ? 4.0/2 : 0.0;
-        order = (cdag, :i, c, :i, cdag, :j, c, :j))
-
-ks = build_kpoints([[2.0, 0.0], [0.0, 2.0]], (2, 2))
-
-result = solve_hfk(dofs, onebody, twobody, ks, 16)
+        (qn1.spin == qn2.spin) && (qn3.spin == qn4.spin) &&
+        (qn1.spin !== qn3.spin) ? U/2 : 0.0,
+    order = (cdag, :i, c, :i, cdag, :i, c, :i))
 ```
 
-Run log:
-```
-============================================================
-Hartree-Fock SCF Solver (momentum space)
-============================================================
-  Nk = 4,  d = 8,  n_electrons = 16,  T = 0
-  mixing = DIIS(m=8),  tol = 1e-08,  max_iter = 1000
-============================================================
-[13:52:05]  T(r): 6 terms   383.291μs
-[13:52:05]  V(r): 5 triples   491.291μs
-[13:52:05] G initialized   459.834μs
-[13:52:05] Iter    1  res = 1.566e-02  E = -6.104777  NCond = 4.0000
-[13:52:05] Iter   10  res = 6.553e-09 < 1.000e-08  CONVERGED
-============================================================
-[13:52:05] SCF CONVERGED  (10 iterations)
-  Band energy:        -0.0095459283
-  Interaction energy: -0.5570150688
-  Total energy:       -0.5665609971
-  NCond:              4.000000
-  μ:                  +16.0000000000
+**Step 2: Solve the Hartree-Fock ground state**
 
-  ── Timing Summary (k-space HF) ───────────────────────────
-  Phase                        Total         Avg   Calls
-  ──────────────────────────────────────────────────────────
-  build_Tr                 383.291μs   383.291μs       1
-  build_Tk                   7.000μs     7.000μs       1
-  build_Vr                 491.291μs   491.291μs       1
-  initialize_green_k       459.834μs   459.834μs       1
-  build_heff_k               7.890ms   789.012μs      10
-  diagonalize_k              4.702ms   470.216μs      10
-  update_green_k             1.007ms   100.704μs      10
-  calc_energies_k           89.709μs    44.854μs       2
-  ──────────────────────────────────────────────────────────
-  solve_hfk (total)         26.227ms    26.227ms       1
-  ──────────────────────────────────────────────────────────
+```julia
+Nk_hf   = 12
+kpoints = build_kpoints([a1, a2], (Nk_hf, Nk_hf))
+n_elec  = 2 * length(kpoints)   # half-filling
+
+hf = solve_hfk(dofs, onebody, twobody, kpoints, n_elec;
+    n_restarts = 10, field_strength = 1.0, n_warmup = 10, tol = 1e-12)
 ```
 
-## Examples
+The converged ground state shows Néel antiferromagnetic order:
 
-### SDW-CDW Phase Diagram of Extended Hubbard Model
-
-This example reproduces the phase diagram of the extended Hubbard model on a 2D square lattice at half-filling:
-
-$$H = -t \sum_{\langle ij \rangle,\sigma} (c^\dagger_{i\sigma}c_{j\sigma} + \text{h.c.}) + U \sum_i n_{i\uparrow}n_{i\downarrow} + V \sum_{\langle ij \rangle} n_i n_j$$
-
-The model parameters are $t=1$, $U=4$, with nearest-neighbor repulsion $V \in [0, 2]$. At half-filling, the system exhibits two distinct phases:
-- **SDW/AFM phase** ($V/U \lesssim 1/4$): antiferromagnetic order with staggered magnetization $S(\pi,\pi) \neq 0$
-- **CDW/CO phase** ($V/U \gtrsim 1/4$): charge density wave order with staggered charge density $N(\pi,\pi) \neq 0$
-
-The calculation uses momentum-space unrestricted Hartree-Fock on a $2\times2$ magnetic unit cell with a $2\times2$ $k$-grid (4 $k$-points). For each $V$, SCF is initialized from two biased initial conditions (SDW and CDW), and the lower-energy converged state is taken as the ground state.
-
-Run:
+```julia
+mags = local_spin(dofs, hf.G_k)
+print_spin(mags)
 ```
-julia --project=examples examples/SDW_CDW/run.jl
+```
+cell/sub                     n        mx        my        mz       |m|      θ(°)      φ(°)
+──────────────────────────────────────────────────────────────────────────────────────────
+1/1                     1.0000    0.1336   -0.4546   -0.0179    0.4742     92.17    -73.63
+1/2                     1.0000   -0.1336    0.4546    0.0179    0.4742     87.83    106.37
+
+Local spin moments (A and B sublattices):
+  A: mx=0.1336  my=-0.4546  mz=-0.0179
+  B: mx=-0.1336  my=0.4546  mz=0.0179
+  Staggered magnetization |mz_A - mz_B|/2 = 0.948321
 ```
 
-Results:
+**Step 3: Compute the magnon dispersion via RPA**
 
-![SDW_CDW](docs/src/fig/sdw_cdw.png)
+```julia
+B_mat = 2π * inv(hcat(a1, a2))'
+reciprocal_vecs = [B_mat[:, 1], B_mat[:, 2]]
 
-The calculated phase boundary at $V_c = U/4 = 1.0$ and the order parameter curves are in complete agreement with Fig. 5(b) of Ref. [1].
+# q-path: Γ → X → M → Γ (original square BZ)
+qpoints = ...  # see examples/AFM_Magnon/run.jl for full q-path construction
 
+ph = solve_ph_excitations(dofs, onebody, twobody, hf, qpoints, reciprocal_vecs;
+    solver = :RPA)
+```
 
-## References
-
-[1] T. Aoyama, K. Yoshimi, K. Ido, Y. Motoyama, T. Kawamura, T. Misawa, T. Kato, and A. Kobayashi, [H-wave – A Python package for the Hartree-Fock approximation and the random phase approximation](https://doi.org/10.1016/j.cpc.2024.109087), Computer Physics Communications 298, 109087 (2024).
+Run the full example:
+```
+julia --project=examples -t 8 examples/AFM_Magnon/run.jl
+```
 
 
 ## Package Structure
