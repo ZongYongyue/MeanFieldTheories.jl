@@ -2,146 +2,13 @@
 
 ---
 
-## 1. Starting Point: The Many-Body Hamiltonian
+## 1. Parametrization of the Particle-Hole Excited State
 
-Consider a general many-body Hamiltonian in second-quantized form:
-
-```math
-H = H_0 + H_{\text{int}} = \sum_{ij,ab} t^{ab}_{ij}\,c^\dagger_{ia}\,c_{jb}
-    + \sum_{ijkl,abcd} V^{abcd}_{ijkl}\,c^\dagger_{ia}\,c_{jb}\,c^\dagger_{kc}\,c_{ld}
-```
-
-where $i,j,k,l$ are site indices and $a,b,c,d$ are orbital (including spin) indices. $t^{ab}_{ij}$ are hopping matrix elements and $V^{abcd}_{ijkl}$ are two-body interaction matrix elements.
-
-After Fourier transformation, the hopping term becomes
-
-```math
-H_0 = \sum_{\mathbf{k}, ab} h^{ab}(\mathbf{k})\, c^\dagger_{\mathbf{k}a}\, c_{\mathbf{k}b}
-```
-
-where $h^{ab}(\mathbf{k}) = \sum_\delta t^{ab}_\delta\, e^{i\mathbf{k}\cdot\boldsymbol{\delta}}$ ($\delta$ denotes lattice displacement vectors).
-
-The interaction term in momentum space takes the **three-momentum form**:
-
-```math
-H_{\text{int}} = \frac{1}{N}\sum_{\mathbf{k}_1\mathbf{k}_2\mathbf{k}_3}\sum_{abcd}
-\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)\,
-c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_4 d}
-```
-
-where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$ is fixed by momentum conservation, leaving only three independent momenta. $\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)$ is the three-momentum Fourier transform of the interaction potential. The index-operator correspondence is:
-
-- Index $a$: $c^\dagger_{\mathbf{k}_1 a}$
-- Index $b$: $c_{\mathbf{k}_2 b}$
-- Index $c$: $c^\dagger_{\mathbf{k}_3 c}$
-- Index $d$: $c_{\mathbf{k}_4 d}$
-
----
-
-## 2. Hartree-Fock Mean-Field Approximation
-
-### 2.1 Density Matrix
-
-For a ground state that preserves discrete translational symmetry, the single-particle density matrix is diagonal in momentum space:
-
-```math
-\langle c^\dagger_{\mathbf{k}a}\,c_{\mathbf{k}'b}\rangle = \delta_{\mathbf{k},\mathbf{k}'}\,G^{ab}(\mathbf{k})
-```
-
-### 2.2 Wick Decomposition
-
-Applying Wick's theorem to the four-fermion operator product (dropping the fully contracted constant), there are four single-contraction channels:
-
-```math
-\begin{aligned}
-c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_4 d}
-\;\approx\;&
-\underbrace{
-+\langle c^\dagger_{\mathbf{k}_1 a} c_{\mathbf{k}_2 b}\rangle\, c^\dagger_{\mathbf{k}_3 c} c_{\mathbf{k}_4 d}
-+\langle c^\dagger_{\mathbf{k}_3 c} c_{\mathbf{k}_4 d}\rangle\, c^\dagger_{\mathbf{k}_1 a} c_{\mathbf{k}_2 b}
-}_{\text{Hartree (direct)}} \\
-&\underbrace{
--\langle c^\dagger_{\mathbf{k}_1 a} c_{\mathbf{k}_4 d}\rangle\, c^\dagger_{\mathbf{k}_3 c} c_{\mathbf{k}_2 b}
--\langle c^\dagger_{\mathbf{k}_3 c} c_{\mathbf{k}_2 b}\rangle\, c^\dagger_{\mathbf{k}_1 a} c_{\mathbf{k}_4 d}
-}_{\text{Fock (exchange)}}
-\end{aligned}
-```
-
-The Hartree terms contract "same-side" operator pairs (the $1,2$ side or the $3,4$ side), while the Fock terms contract "cross-side" pairs, picking up a minus sign from fermionic anticommutation.
-
-### 2.3 Hartree-Fock Self-Energy
-
-Substituting all contractions, the mean-field interaction takes the form
-
-```math
-H_{\text{MF}} = \sum_{\mathbf{q},ab} \Sigma^{ab}(\mathbf{q})\, c^\dagger_{\mathbf{q}a}\,c_{\mathbf{q}b}
-```
-
-The Hartree-Fock self-energy is
-
-```math
-\Sigma^{ab}(\mathbf{q}) = \frac{1}{N}\sum_{\mathbf{k}}\sum_{cd}
-\Bigl[
-\underbrace{
-\widetilde{V}^{cdab}(\mathbf{k},\mathbf{k},\mathbf{q})
-+\widetilde{V}^{abcd}(\mathbf{q},\mathbf{q},\mathbf{k})
-}_{\text{Hartree}}
-\underbrace{
--\widetilde{V}^{cbad}(\mathbf{k},\mathbf{q},\mathbf{q})
--\widetilde{V}^{adcb}(\mathbf{q},\mathbf{k},\mathbf{k})
-}_{\text{Fock}}
-\Bigr]\,G^{cd}(\mathbf{k})
-```
-
-### 2.4 Diagonalization and Band Structure
-
-Define the effective single-particle Hamiltonian matrix
-
-```math
-\mathcal{H}^{ab}(\mathbf{k}) = h^{ab}(\mathbf{k}) + \Sigma^{ab}(\mathbf{k})
-```
-
-Diagonalize it:
-
-```math
-\sum_b \mathcal{H}^{ab}(\mathbf{k})\, U_{bn}(\mathbf{k}) = E^n_\mathbf{k}\, U_{an}(\mathbf{k})
-```
-
-where $n$ is the band index, $E^n_\mathbf{k}$ is the mean-field band dispersion, and $U(\mathbf{k})$ is the unitary transformation matrix. Introduce quasiparticle operators:
-
-```math
-f_{\mathbf{k}n} = \sum_a U^*_{an}(\mathbf{k})\, c_{\mathbf{k}a}, \qquad c_{\mathbf{k}a} = \sum_n U_{an}(\mathbf{k})\, f_{\mathbf{k}n}
-```
-
-The mean-field Hamiltonian in the quasiparticle basis is then diagonal:
-
-```math
-\hat{\mathcal{H}}_{\text{MF}} = \sum_{\mathbf{k},n} E^n_\mathbf{k}\, f^\dagger_{\mathbf{k}n}\, f_{\mathbf{k}n} + E_{\text{const}}
-```
-
-### 2.5 Hartree-Fock Ground State
-
-The Hartree-Fock ground state $|G\rangle$ is constructed by filling all bands below the Fermi level:
-
-```math
-|G\rangle = \prod_{\mathbf{k}} \prod_{n \in \text{occ}} f^\dagger_{\mathbf{k}n}\, |0\rangle
-```
-
-where "occ" denotes the set of occupied bands. The density matrix in the quasiparticle basis is
-
-```math
-\langle f^\dagger_{\mathbf{k}n}\, f_{\mathbf{k}n'} \rangle = \delta_{nn'}\, \bar{n}_n(\mathbf{k}), \qquad \bar{n}_n(\mathbf{k}) = \begin{cases} 1 & n \in \text{occ} \\ 0 & n \in \text{unocc} \end{cases}
-```
-
----
-
-## 3. Parametrization of the Particle-Hole Excited State
-
-### 3.1 Physical Picture
+### 1.1 Physical Picture
 
 The simplest excitation above the Hartree-Fock ground state is a **particle-hole pair**: an electron is promoted from an occupied band $n_0$ (the hole) to an unoccupied band $n$ (the particle). In a translationally invariant system, such an excitation carries a definite total momentum $\mathbf{q}$. Depending on the quantum numbers involved, these collective excitations may correspond to magnons, excitons, or other physical objects.
 
-### 3.2 Excited-State Wavefunction
+### 1.2 Excited-State Wavefunction
 
 The most general particle-hole excited state at momentum $\mathbf{q}$ is parametrized as
 
@@ -164,7 +31,7 @@ Define the particle-hole pair operator:
 
 so that $|\mu, \mathbf{q}\rangle = \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle$.
 
-### 3.3 Orthonormalization
+### 1.3 Orthonormalization
 
 We require orthonormality among different excited states:
 
@@ -198,9 +65,9 @@ That is, $\psi^{n_0 n}_\mathbf{k}$ as a vector in the composite $(\mathbf{k}, n_
 
 ---
 
-## 4. Variational Principle and the Eigenvalue Problem
+## 2. Variational Principle and the Eigenvalue Problem
 
-### 4.1 Energy Functional
+### 2.1 Energy Functional
 
 The excitation energy is computed using the **full original Hamiltonian** $H$ (not the mean-field $H_{\text{MF}}$):
 
@@ -210,7 +77,7 @@ The excitation energy is computed using the **full original Hamiltonian** $H$ (n
 
 where $E_G = \langle G | H | G \rangle$ is the ground-state energy.
 
-### 4.2 Recasting the Excitation Energy in Commutator Form
+### 2.2 Recasting the Excitation Energy in Commutator Form
 
 Using $|\mu, \mathbf{q}\rangle = \hat{O}^\dagger_{\mu\mathbf{q}}\, |G\rangle$, the excitation energy can be written as
 
@@ -246,7 +113,7 @@ Combining both terms, $E_G$ cancels with $-E_G$, yielding:
 
 The advantage of this form is that the commutator $[H, \hat{O}^\dagger]$ is more compact to evaluate than $H\hat{O}^\dagger$ directly, since the commutator naturally reduces the number of operator terms that need to be handled.
 
-### 4.3 Expansion into a Quadratic Form in $\psi^{n_0 n}_\mathbf{k}$
+### 2.3 Expansion into a Quadratic Form in $\psi^{n_0 n}_\mathbf{k}$
 
 Substituting the definitions of $\hat{O}^\dagger$ and $\hat{O}$ into the above expression. Recall
 
@@ -274,7 +141,7 @@ The excitation energy then takes the vector-matrix-vector form:
 
 where $\boldsymbol{\psi}$ is a column vector with composite index $(\mathbf{k}, n_0, n)$. This is a **Hermitian (quadratic) form** in $\psi^{n_0 n}_\mathbf{k}$.
 
-### 4.4 Rayleigh Quotient and the Eigenvalue Problem
+### 2.4 Rayleigh Quotient and the Eigenvalue Problem
 
 Our goal is to find, among all $\boldsymbol{\psi}$ satisfying the normalization constraint $\boldsymbol{\psi}^\dagger \boldsymbol{\psi} = 1$, those that make the excitation energy $\varepsilon$ stationary. This is precisely the standard **Rayleigh quotient** problem.
 
@@ -284,7 +151,7 @@ Define the Rayleigh quotient
 R[\boldsymbol{\psi}] = \frac{\boldsymbol{\psi}^\dagger\, \mathcal{H}^{\text{eff}}\, \boldsymbol{\psi}}{\boldsymbol{\psi}^\dagger\, \boldsymbol{\psi}}
 ```
 
-(Here the denominator involves the $\delta_{\mathbf{k}\mathbf{k}'}\delta_{n_0 n_0'}\delta_{nn'}$ metric, i.e., the standard inner product — this is precisely the significance of the orthonormalization result proved in §3.3. If the metric were not the identity, the problem would become a generalized eigenvalue problem.)
+(Here the denominator involves the $\delta_{\mathbf{k}\mathbf{k}'}\delta_{n_0 n_0'}\delta_{nn'}$ metric, i.e., the standard inner product — this is precisely the significance of the orthonormalization result proved in §1.1. If the metric were not the identity, the problem would become a generalized eigenvalue problem.)
 
 Taking the variation of $R[\boldsymbol{\psi}]$ with respect to $\psi^{n_0 n*}_\mathbf{k}$ and setting $\delta R / \delta \psi^{n_0 n*}_\mathbf{k} = 0$, using the quotient rule:
 
@@ -310,17 +177,42 @@ This is the **Bethe-Salpeter equation** in the Tamm-Dancoff approximation. Its p
 
 ---
 
-## 5. Complete Derivation of the Effective Hamiltonian $\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})$
+## 3. Complete Derivation of the Effective Hamiltonian $\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})$
 
-### 5.1 Decomposition Strategy
+### 3.1 Decomposition Strategy: Normal Ordering
+
+The interaction Hamiltonian is written in the $c^\dagger c c^\dagger c$ form:
 
 ```math
-\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = (\mathcal{H}_0)^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) + (\mathcal{H}_{\text{int}})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})
+H_{\text{int}} = \frac{1}{N}\sum_{\mathbf{k}_1\mathbf{k}_2\mathbf{k}_3}\sum_{abcd}
+\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)\,
+c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_4 d}
 ```
 
-We compute the contributions from the one-body part $[H_0, \cdot]$ and the two-body part $[H_{\text{int}}, \cdot]$ separately.
+Using the anticommutation relation $c_{\mathbf{k}_2 b}\,c^\dagger_{\mathbf{k}_3 c} = -c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_2 b} + \delta_{\mathbf{k}_2,\mathbf{k}_3}\,\delta_{bc}$, we decompose $H_{\text{int}}$ into a **normal-ordered quartic** and a **one-body self-energy** piece:
 
-### 5.2 One-Body Part: $[H_0, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$
+```math
+H_{\text{int}} = \underbrace{-\frac{1}{N}\sum_{\mathbf{k}_1\mathbf{k}_2\mathbf{k}_3}\sum_{abcd}
+\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)\,
+c^\dagger_{\mathbf{k}_1 a}\,c^\dagger_{\mathbf{k}_3 c}\,c_{\mathbf{k}_2 b}\,c_{\mathbf{k}_4 d}}_{\displaystyle :H_{\text{int}}:}
+\;+\; \underbrace{\frac{1}{N}\sum_{\mathbf{k}_1,\mathbf{k}_3}\sum_{abd}
+\widetilde{V}^{abbd}(\mathbf{k}_1,\mathbf{k}_3,\mathbf{k}_3)\,
+c^\dagger_{\mathbf{k}_1 a}\,c_{\mathbf{k}_1 d}}_{\displaystyle H_{\text{SE}}}
+```
+
+where in $H_{\text{SE}}$, the delta $\delta_{\mathbf{k}_2,\mathbf{k}_3}\,\delta_{bc}$ has been applied, giving $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2 = \mathbf{k}_1$ and the sum over $b$ is contracted. The self-energy piece $H_{\text{SE}}$ is a one-body operator.
+
+**Key observation**: the normal-ordering decomposition separates $H_{\text{int}}$ into a normal-ordered quartic $:H_{\text{int}}:$ (which produces all the non-trivial particle-hole scattering) and a one-body piece $H_{\text{SE}}$ (which contributes to the commutator in the same way as $H_0$). We compute $[H_0, \cdot]$, $[H_{\text{SE}}, \cdot]$, and $[:H_{\text{int}}:, \cdot]$ separately, then combine at the end.
+
+Therefore, we decompose:
+
+```math
+\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \underbrace{(\mathcal{H}_0)^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})}_{\text{from } H_0} + \underbrace{(\mathcal{H}_{\text{SE}})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})}_{\text{from } H_{\text{SE}}} + \underbrace{(\mathcal{H}_{:\text{int}:})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})}_{\text{from } :H_{\text{int}}:}
+```
+
+and compute the three parts separately.
+
+### 3.2 One-Body Part: $[H_0, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$
 
 Write $H_0$ in the quasiparticle basis:
 
@@ -350,14 +242,36 @@ Taking the ground-state expectation value $\langle G|\, f^\dagger_{\mathbf{k}, n
 (\mathcal{H}_0)^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}} \left[ \delta_{n_0 n_0'}\,\tilde{h}_{nn'}(\mathbf{k}+\mathbf{q}) - \delta_{nn'}\, \tilde{h}_{n_0' n_0}(\mathbf{k}) \right]
 ```
 
-> **Note**: Here $\tilde{h}$ is the bare hopping Hamiltonian in the quasiparticle basis, which is generally **not diagonal**. The full mean-field Hamiltonian $\mathcal{H} = h + \Sigma$ is what diagonalizes. After combining the contributions from $H_0$ and $H_{\text{int}}$ (see §5.5), the mean-field part will fully diagonalize. The hole-scattering term $\tilde{h}_{n_0 n_0'}(\mathbf{k})$ naturally couples different hole bands.
+> **Note**: Here $\tilde{h}$ is the bare hopping Hamiltonian in the quasiparticle basis, which is generally **not diagonal**. The full mean-field Hamiltonian $\tilde{\mathcal{H}} = \tilde{h} + \tilde{\Sigma}$ is what diagonalizes. Whether and how the $H_0$ contribution combines with other one-body pieces to yield the diagonal mean-field energy will be addressed after all contributions are collected (see §3.5).
 
-### 5.3 Two-Body Part: Expanding the Commutator
+### 3.2.1 Self-Energy One-Body Part: $[H_{\text{SE}}, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$
 
-Write $H_{\text{int}}$ in the quasiparticle basis, transforming orbital indices to band indices with the $U$ matrix:
+$H_{\text{SE}}$ is a one-body operator of the same form as $H_0$. In the quasiparticle basis:
 
 ```math
-H_{\text{int}} = \frac{1}{N}\sum_{\mathbf{p}_1\mathbf{p}_2\mathbf{p}_3}\sum_{m_1 m_2 m_3 m_4} \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)\, f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}
+H_{\text{SE}} = \sum_{\mathbf{p}', mm'} \tilde{\sigma}_{mm'}(\mathbf{p}')\, f^\dagger_{\mathbf{p}'m}\, f_{\mathbf{p}'m'}
+```
+
+where
+
+```math
+\tilde{\sigma}_{mm'}(\mathbf{p}') = \frac{1}{N}\sum_{\mathbf{k}_3}\sum_{abd} U^*_{am}(\mathbf{p}')\, \widetilde{V}^{abbd}(\mathbf{p}',\mathbf{k}_3,\mathbf{k}_3)\, U_{dm'}(\mathbf{p}')
+```
+
+is the normal-ordering one-body coefficient (note: this is **not** the Hartree-Fock self-energy $\tilde{\Sigma}$, which involves the density matrix $G$).
+
+Since $H_{\text{SE}}$ has the identical bilinear structure as $H_0$, the commutator and expectation value follow exactly the same algebra as §3.2, with $\tilde{h} \to \tilde{\sigma}$:
+
+```math
+(\mathcal{H}_{\text{SE}})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}} \left[ \delta_{n_0 n_0'}\,\tilde{\sigma}_{nn'}(\mathbf{k}+\mathbf{q}) - \delta_{nn'}\, \tilde{\sigma}_{n_0' n_0}(\mathbf{k}) \right]
+```
+
+### 3.3 Normal-Ordered Two-Body Part: Expanding the Commutator
+
+Write the normal-ordered interaction in the quasiparticle basis:
+
+```math
+:H_{\text{int}}: = -\frac{1}{N}\sum_{\mathbf{p}_1\mathbf{p}_2\mathbf{p}_3}\sum_{m_1 m_2 m_3 m_4} \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)\, f^\dagger_{\mathbf{p}_1,m_1}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_2,m_2}\, f_{\mathbf{p}_4,m_4}
 ```
 
 where $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2$, and the interaction in the quasiparticle basis is
@@ -366,30 +280,31 @@ where $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2$, and the inter
 \widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3) = \sum_{abcd} U^*_{am_1}(\mathbf{p}_1)\, U_{bm_2}(\mathbf{p}_2)\, U^*_{cm_3}(\mathbf{p}_3)\, U_{dm_4}(\mathbf{p}_4)\; \widetilde{V}^{abcd}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)
 ```
 
-To compute $[H_{\text{int}},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$, use
+Note the overall minus sign from normal ordering. To compute $[:H_{\text{int}}:,\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$, we use the SNEG-verified commutator identity for normal-ordered quartics:
 
 ```math
-[f^\dagger_1 f_2 f^\dagger_3 f_4,\; f^\dagger_5 f_6] = [f^\dagger_1 f_2,\; f^\dagger_5 f_6]\, f^\dagger_3 f_4 + f^\dagger_1 f_2\, [f^\dagger_3 f_4,\; f^\dagger_5 f_6]
+[f^\dagger_1 f^\dagger_3 f_2 f_4,\; f^\dagger_5 f_6] = +\delta_{1,6}\, f^\dagger_3 f^\dagger_5 f_2 f_4 - \delta_{2,5}\, f^\dagger_1 f^\dagger_3 f_4 f_6 - \delta_{3,6}\, f^\dagger_1 f^\dagger_5 f_2 f_4 + \delta_{4,5}\, f^\dagger_1 f^\dagger_3 f_2 f_6
 ```
 
-Each bilinear commutator produces two terms (Appendix A), yielding a total of **4 terms**, each containing four fermion operators:
+where $\delta_{i,j}$ denotes the composite delta $\delta_{\mathbf{p}_i, \mathbf{p}_j}\,\delta_{m_i, m_j}$. Each term is **already normal-ordered** ($f^\dagger f^\dagger f f$).
 
-**Part I**: $[f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}_2,m_2},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$
+**Physical interpretation**: each delta represents one operator in the quartic anticommuting with one operator in the bilinear. The four terms correspond to:
 
-- Term (I-a): $\delta_{\mathbf{p}_2, \mathbf{p}+\mathbf{q}}\,\delta_{m_2,n'}$, producing $f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}, n_0'}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}$
-- Term (I-b): $\delta_{\mathbf{p}_1, \mathbf{p}}\,\delta_{m_1,n_0'}$, producing $-f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}$
+| Term | Delta | Sign | Fixes |
+|---|---|---|---|
+| (A) | $\delta_{1,6}$: $\delta_{\mathbf{p}_1,\mathbf{p}}\,\delta_{m_1,n_0'}$ | $+$ | $\mathbf{p}_1 = \mathbf{p}$, remaining: $f^\dagger_3 f^\dagger_5 f_2 f_4$ |
+| (B) | $\delta_{2,5}$: $\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}\,\delta_{m_2,n'}$ | $-$ | $\mathbf{p}_2 = \mathbf{p}+\mathbf{q}$, remaining: $f^\dagger_1 f^\dagger_3 f_4 f_6$ |
+| (C) | $\delta_{3,6}$: $\delta_{\mathbf{p}_3,\mathbf{p}}\,\delta_{m_3,n_0'}$ | $-$ | $\mathbf{p}_3 = \mathbf{p}$, remaining: $f^\dagger_1 f^\dagger_5 f_2 f_4$ |
+| (D) | $\delta_{4,5}$: $\delta_{\mathbf{p}_4,\mathbf{p}+\mathbf{q}}\,\delta_{m_4,n'}$ | $+$ | $\mathbf{p}_4 = \mathbf{p}+\mathbf{q}$, remaining: $f^\dagger_1 f^\dagger_3 f_2 f_6$ |
 
-**Part II**: $[f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]$
+> **Advantage of normal ordering**: In the old $c^\dagger c c^\dagger c$ approach, the commutator produced 4 terms with mixed operator ordering, requiring further Wick decomposition into self-energy and scattering contractions. Here, every term is already normal-ordered — the subsequent ground-state expectation values involve only **genuine particle-hole scattering** contractions (no self-energy subtractions needed).
 
-- Term (II-a): $\delta_{\mathbf{p}_4, \mathbf{p}+\mathbf{q}}\,\delta_{m_4,n'}$, producing $f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}, n_0'}$
-- Term (II-b): $\delta_{\mathbf{p}_3, \mathbf{p}}\,\delta_{m_3,n_0'}$, producing $-f^\dagger_{\mathbf{p}_1,m_1}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}_4,m_4}$
-
-### 5.4 Ground-State Expectation Values
+### 3.4 Ground-State Expectation Values
 
 For each of the four terms, we need to evaluate six-operator expectation values of the form
 
 ```math
-\langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [\text{4 } f/f^\dagger \text{ operators}]\; |G\rangle
+\langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [f^\dagger f^\dagger f f]\; |G\rangle
 ```
 
 On the Slater-determinant ground state, Wick's theorem decomposes these into all possible full contractions (three pairs), with the contraction rule
@@ -398,130 +313,333 @@ On the Slater-determinant ground state, Wick's theorem decomposes these into all
 \langle G|\, f^\dagger_{\mathbf{p}m}\, f_{\mathbf{p}'m'}\, |G\rangle = \delta_{\mathbf{p}\mathbf{p}'}\,\delta_{mm'}\, \bar{n}_m(\mathbf{p})
 ```
 
-**Key selection rules**:
+**Key selection rules** (same as before):
 
-- The external $f_{\mathbf{k}+\mathbf{q}, n}$ ($n \in$ unocc): $\bar{n}_n = 0$, so it cannot pair with any $f^\dagger$ through a Wick contraction — it must "annihilate" against an $f^\dagger$ with matching momentum and band index via the anticommutation relation
-- The external $f^\dagger_{\mathbf{k}, n_0}$ ($n_0 \in$ occ): $\bar{n}_{n_0} = 1$, so it can pair normally with a matching $f$
+- The external $f_{\mathbf{k}+\mathbf{q}, n}$ ($n \in$ unocc): $\bar{n}_n = 0$, so it must anticommute against an internal $f^\dagger$ with matching quantum numbers
+- The external $f^\dagger_{\mathbf{k}, n_0}$ ($n_0 \in$ occ): $\bar{n}_{n_0} = 1$, so it contracts normally with a matching internal $f$
 
-Therefore, in the six-operator expectation value, $f_{\mathbf{k}+\mathbf{q}, n}$ must pair with one of the internal $f^\dagger$ operators, and $f^\dagger_{\mathbf{k}, n_0}$ must pair with one of the internal $f$ operators. The remaining internal pair then contracts with the Fermi sea (self-energy type) or is directly fixed by external quantum numbers (genuine particle-hole scattering).
+**Crucial simplification from normal ordering**: since all four internal operators are now in normal order ($f^\dagger f^\dagger f f$), the external $f_{\mathbf{k}+\mathbf{q}, n}$ can only pair with one of the two internal $f^\dagger$'s, and $f^\dagger_{\mathbf{k}, n_0}$ can only pair with one of the two internal $f$'s. This gives at most $2 \times 2 = 4$ contractions per term. However, occupation constraints further reduce this — in many cases only **one** contraction survives per term. There are no self-energy-type contractions.
 
-**Analysis of the four terms** (Term (I-a) detailed; the others below):
+We evaluate each of the four commutator terms separately, sandwiching with the external operators and applying Wick's theorem (verified by SNEG).
 
-#### Term (I-a): Fix $\mathbf{p}_2 = \mathbf{p}+\mathbf{q}$, $m_2 = n'$
+#### Understanding the $\theta$ functions in SNEG output
 
-Six-operator structure (labeling operator positions 1–6 for sign tracking):
-
-```math
-\underset{(1)}{f^\dagger_{\mathbf{k}, n_0}}\, \underset{(2)}{f_{\mathbf{k}+\mathbf{q}, n}}\, \underset{(3)}{f^\dagger_{\mathbf{p}_1,m_1}}\, \underset{(4)}{f_{\mathbf{p}, n_0'}}\, \underset{(5)}{f^\dagger_{\mathbf{p}_3,m_3}}\, \underset{(6)}{f_{\mathbf{p}_4,m_4}}
-```
-
-The external annihilator $f_{(2)}$ ($n \in$ unocc) can pair with either of the two internal $f^\dagger$'s: $f^\dagger_{(3)}$ or $f^\dagger_{(5)}$. For each such pairing, the external creator $f^\dagger_{(1)}$ ($n_0 \in$ occ) can pair with any remaining internal $f$. This generates **four** distinct contractions, falling into three classes:
-
-**Contraction (α)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 4),\; (5 \leftrightarrow 6)$
-
-Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_3 = \mathbf{p}_4$, $m_3 = m_4$, $\bar{n}_{m_3} \neq 0$. The sum over $m_3 \in$ occ produces a density matrix — this is part of the Hartree-Fock self-energy correction to the particle energy. [Self-energy type]
-
-**Contraction (β)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 4),\; (3 \leftrightarrow 6)$
-
-Requires $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{k} = \mathbf{p}$, $n_0 = n_0'$; $\mathbf{p}_1 = \mathbf{p}_4$, $m_1 = m_4$, $\bar{n}_{m_1} \neq 0$. Also a self-energy correction type. [Self-energy type]
-
-**Contraction (γ-A)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 6),\; (5 \leftrightarrow 4)$
-
-Requires $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{p}_4 = \mathbf{k}$, $m_4 = n_0$; $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
-
-This is a **genuine particle-hole scattering** term — all four band indices ($n, n_0, n', n_0'$) are explicitly fixed, with no Fermi-sea summation.
-
-Momentum check: $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2 = (\mathbf{k}+\mathbf{q}) + \mathbf{p} - (\mathbf{p}+\mathbf{q}) = \mathbf{k}$ ✓.
-
-$V$ tensor: $\widetilde{V}_{m_1, m_2, m_3, m_4} = \widetilde{V}_{n, n', n_0', n_0}(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p})$.
-
-Sign computation: the pairing permutation $(2,3)(5,4)(1,6)$ relative to the canonical order $(1,2,3,4,5,6)$ has signature $(-1)^3 = -1$.
-
-**Contraction (γ-B)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 6),\; (3 \leftrightarrow 4)$
-
-Requires $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{p}_4 = \mathbf{k}$, $m_4 = n_0$; $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
-
-Also a **genuine particle-hole scattering** term.
-
-Momentum check: $\mathbf{p}_4 = \mathbf{p}_1 + \mathbf{p}_3 - \mathbf{p}_2 = \mathbf{p} + (\mathbf{k}+\mathbf{q}) - (\mathbf{p}+\mathbf{q}) = \mathbf{k}$ ✓.
-
-$V$ tensor: $\widetilde{V}_{m_1, m_2, m_3, m_4} = \widetilde{V}_{n_0', n', n, n_0}(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})$.
-
-Sign computation: the pairing permutation $(2,5)(3,4)(1,6)$ has signature $(-1)^2 = +1$.
-
-> **Critical observation**: Term (I-a) produces **two** distinct genuine particle-hole scattering contractions (γ-A and γ-B), arising because $f_{(2)}$ can pair with *either* internal $f^\dagger$. These two contractions involve $\widetilde{V}$ evaluated at **different momentum arguments**: $(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p})$ for γ-A versus $(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})$ for γ-B.
-
-#### Term (II-a): Fix $\mathbf{p}_4 = \mathbf{p}+\mathbf{q}$, $m_4 = n'$
-
-Six-operator structure:
+In SNEG with `ordering[f] = SEA` (Slater-determinant ground state), each Wick contraction pair produces an occupation factor. The basic contraction rule is:
 
 ```math
-\underset{(1)}{f^\dagger_{\mathbf{k}, n_0}}\, \underset{(2)}{f_{\mathbf{k}+\mathbf{q}, n}}\, \underset{(3)}{f^\dagger_{\mathbf{p}_1,m_1}}\, \underset{(4)}{f_{\mathbf{p}_2,m_2}}\, \underset{(5)}{f^\dagger_{\mathbf{p}_3,m_3}}\, \underset{(6)}{f_{\mathbf{p}, n_0'}}
+\langle G|\, f^\dagger_\alpha\, f_\beta\, |G\rangle = \delta_{\alpha\beta}\, \theta(-\alpha)
 ```
 
-By the same logic, there are two self-energy contractions and two γ-type contractions:
+where $\theta(-\alpha) \equiv \bar{n}_\alpha$ is the ground-state occupation number of state $\alpha$:
+- $\theta(-\alpha) = 1$ if state $\alpha$ is occupied
+- $\theta(-\alpha) = 0$ if state $\alpha$ is unoccupied
 
-**Contraction (γ-A)**: $(2 \leftrightarrow 3),\; (1 \leftrightarrow 4),\; (5 \leftrightarrow 6)$
-
-$\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $m_1 = n$; $\mathbf{p}_2 = \mathbf{k}$, $m_2 = n_0$; $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
-
-$\mathbf{p}_4 = (\mathbf{k}+\mathbf{q}) + \mathbf{p} - \mathbf{k} = \mathbf{p}+\mathbf{q}$ ✓.
-
-$V$ tensor: $\widetilde{V}_{n, n_0, n_0', n'}(\mathbf{k}+\mathbf{q},\, \mathbf{k},\, \mathbf{p})$.
-
-Sign: the pairing permutation $(2,3)(1,4)(5,6)$ has signature $(-1)^2 = +1$.
-
-**Contraction (γ-B)**: $(2 \leftrightarrow 5),\; (1 \leftrightarrow 4),\; (3 \leftrightarrow 6)$
-
-$\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $m_3 = n$; $\mathbf{p}_2 = \mathbf{k}$, $m_2 = n_0$; $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, $\bar{n}_{n_0'} = 1$ ✓.
-
-$\mathbf{p}_4 = \mathbf{p} + (\mathbf{k}+\mathbf{q}) - \mathbf{k} = \mathbf{p}+\mathbf{q}$ ✓.
-
-$V$ tensor: $\widetilde{V}_{n_0', n_0, n, n'}(\mathbf{p},\, \mathbf{k},\, \mathbf{k}+\mathbf{q})$.
-
-Sign: the pairing permutation $(2,5)(1,4)(3,6)$ has signature $(-1)^3 = -1$.
-
-#### Terms (I-b) and (II-b): No genuine particle-hole scattering contributions
-
-In Term (I-b), the delta fixes $\mathbf{p}_1 = \mathbf{p}$, $m_1 = n_0'$, producing the internal operator string $-f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}_2,m_2}\, f^\dagger_{\mathbf{p}_3,m_3}\, f_{\mathbf{p}_4,m_4}$. Any γ-type contraction that does not fix $\mathbf{k} = \mathbf{p}$ necessarily leaves the pair $f^\dagger_{\mathbf{p}+\mathbf{q}, n'}$ to contract with the Fermi sea. Since $n' \in$ unocc implies $\bar{n}_{n'} = 0$, these contractions vanish identically.
-
-The same argument applies to Term (II-b), where the delta fixes $\mathbf{p}_3 = \mathbf{p}$, $m_3 = n_0'$, leaving $f^\dagger_{\mathbf{p}+\mathbf{q}, n'}$ (unocc) in the remaining internal pair.
-
-**Therefore, the genuine particle-hole scattering kernel receives contributions only from Terms (I-a) and (II-a), each of which contributes two γ contractions.**
-
-### 5.5 Combining the Results
-
-**(A) Mean-field part**: From contractions of type (α) and (β) (one external operator pair matched + one internal pair contracted with the Fermi sea). These require $\mathbf{k} = \mathbf{p}$ and $n_0 = n_0'$. They exactly reproduce the Hartree-Fock self-energy corrections to the particle and hole. Combined with the one-body part from §5.2, $\tilde{h}$ is replaced by the full mean-field Hamiltonian $\tilde{\mathcal{H}} = \tilde{h} + \tilde{\Sigma}$, which fully diagonalizes to the mean-field energies:
+When $f_\beta$ must anticommute past $f^\dagger_\alpha$ before contracting (i.e., when the annihilator appears to the *left* of the creator), the contraction picks up a complementary factor:
 
 ```math
-(\mathcal{H}_{\text{MF}})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}}\,\delta_{n_0 n_0'}\,\delta_{nn'}\left(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k}\right)
+\theta(+\alpha) = 1 - \theta(-\alpha) = 1 - \bar{n}_\alpha
 ```
 
-This is the free particle-hole pair energy: particle energy minus hole energy.
+which equals 1 for **unoccupied** states and 0 for **occupied** states.
 
-**(B) Particle-hole interaction kernel**: From the four γ contractions identified in §5.4 — two from Term (I-a) and two from Term (II-a). These involve no Fermi-sea summation and all four band indices ($n, n_0, n', n_0'$) are explicitly fixed. **These terms do not require $n_0 = n_0'$** — the interaction kernel couples different hole bands.
+Since a six-operator expectation value has three contraction pairs, each SNEG output term carries a product of three $\theta$ factors.
 
-### 5.6 Two Topologies of the Particle-Hole Interaction Kernel
+**Example**: consider the contraction pattern where $f^\dagger_{\mathbf{k},n_0}$ pairs with $f_{\mathbf{p}_2,m_2}$, $f_{\mathbf{k}+\mathbf{q},n}$ pairs with $f^\dagger_{\mathbf{p}_3,m_3}$, and the remaining internal pair $f^\dagger_{\mathbf{p}+\mathbf{q},n'}$ pairs with $f_{\mathbf{p}_4,m_4}$. This produces:
 
-The four γ contractions are classified into two topologies based on the **momentum transfer within each bilinear pair** of the interaction vertex $c^\dagger_{\mathbf{k}_1 a}\, c_{\mathbf{k}_2 b}\, c^\dagger_{\mathbf{k}_3 c}\, c_{\mathbf{k}_4 d}$:
+```math
+\underbrace{\theta(-\mathbf{k},n_0)}_{\bar{n}_{n_0}(\mathbf{k})}\; \underbrace{\theta(\mathbf{p}_3,m_3)}_{1 - \bar{n}_{m_3}(\mathbf{p}_3)}\; \underbrace{\theta(-\mathbf{p}-\mathbf{q},n')}_{\bar{n}_{n'}(\mathbf{p}+\mathbf{q})}
+```
 
-- **Direct (density) topology**: momentum transfer $\mathbf{k}_1 - \mathbf{k}_2 = \mathbf{k} - \mathbf{p}$, the relative momentum between hole and particle. The particle and hole lines run in parallel.
-- **Exchange topology**: momentum transfer $\mathbf{k}_1 - \mathbf{k}_2 = \pm\mathbf{q}$, the total particle-hole pair momentum. The particle and hole lines cross.
+Here:
+- $\theta(-\mathbf{k},n_0) = \bar{n}_{n_0}(\mathbf{k}) = 1$ because $n_0 \in \text{occ}(\mathbf{k})$ by definition
+- $\theta(\mathbf{p}_3,m_3) = 1 - \bar{n}_{m_3}(\mathbf{p}_3)$: depends on whether band $m_3$ at momentum $\mathbf{p}_3$ is occupied or not. Since $m_3$ is an internal summation index, this factor **remains** and restricts the sum to $m_3 \in \text{unocc}(\mathbf{p}_3)$
+- $\theta(-\mathbf{p}-\mathbf{q}, n') = \bar{n}_{n'}(\mathbf{p}+\mathbf{q})$: depends on the occupation of band $n'$ at $\mathbf{p}+\mathbf{q}$. Since $n' \in \text{unocc}$ for the particle-hole pair, this equals 0
 
-Inspecting the $V$ arguments of each γ contraction:
+The combination $\theta(-\mathbf{p}-\mathbf{q}) - 1$ that appears frequently equals $\bar{n}_{n'}(\mathbf{p}+\mathbf{q}) - 1 = -\theta(\mathbf{p}+\mathbf{q}) = -(1 - \bar{n}_{n'})$, which restricts the corresponding state to be unoccupied.
 
-| Contraction | $V$ momenta $(\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3)$ | $\mathbf{k}_1 - \mathbf{k}_2$ | Topology | Sign |
-|---|---|---|---|---|
-| (I-a)-γA | $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ | $\mathbf{k}-\mathbf{p}$ | Direct | $-1$ |
-| (II-a)-γB | $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$ | $\mathbf{p}-\mathbf{k}$ | Direct | $-1$ |
-| (II-a)-γA | $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ | $\mathbf{q}$ | Exchange | $+1$ |
-| (I-a)-γB | $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$ | $-\mathbf{q}$ | Exchange | $+1$ |
+> **Note on occupation sets**: the sets $\text{occ}(\mathbf{k})$ and $\text{unocc}(\mathbf{k})$ are defined at each momentum $\mathbf{k}$ by the self-consistent Hartree-Fock solution. In general, the partition into occupied and unoccupied bands can vary with momentum (e.g., different fillings at different $\mathbf{k}$-points in the magnetic Brillouin zone). Therefore, one cannot assign a global occ/unocc label to a band index independent of momentum.
 
-Each channel receives **two contributions** involving $\widetilde{V}$ at **different momentum arguments**.
+#### Term (A): $\delta_{m_1,n_0'}\,\delta_{p,\mathbf{p}_1}$ — remaining operators $f^\dagger_{\mathbf{p}_3,m_3}\,f^\dagger_{\mathbf{p}+\mathbf{q},n'}\,f_{\mathbf{p}_2,m_2}\,f_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,m_4}$
 
-**(B1) Direct channel (density channel)** $\mathcal{K}^{\text{d}}$:
+The SNEG Wick contraction of $\langle G|\,f^\dagger_{\mathbf{k},n_0}\,f_{\mathbf{k}+\mathbf{q},n}\,f^\dagger_{\mathbf{p}_3,m_3}\,f^\dagger_{\mathbf{p}+\mathbf{q},n'}\,f_{\mathbf{p}_2,m_2}\,f_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,m_4}\,|G\rangle$ gives (raw output, to be simplified):
 
-From (I-a)-γA and (II-a)-γB. Physical process: the interaction line connects the particle and hole lines, each scattering without exchange.
+```math
+\begin{aligned}
+\theta(-\mathbf{k},n_0)\;\Big\{&
+-\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\Big[
+  \theta(\mathbf{p}_3)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{m_3,n}\,\delta_{m_4,n'}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}} \\
+  &\quad +\theta(-\mathbf{p}_3)\,(\theta(-\mathbf{p}-\mathbf{q})-1)\,\delta_{m_3,m_4}\,\delta_{n,n'}\,\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}}\,\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}
+\Big] \\
++\;&\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\Big[
+  \theta(\mathbf{p}_3)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{m_2,n'}\,\delta_{m_3,n}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}} \\
+  &\quad +\theta(-\mathbf{p}_3)\,(\theta(-\mathbf{p}-\mathbf{q})-1)\,\delta_{m_2,m_3}\,\delta_{n,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}\,\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}}
+\Big] \\
++\;&\theta(-\mathbf{p}_3)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}\Big[
+  \delta_{m_2,n'}\,\delta_{m_3,m_4}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}\,\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} \\
+  &\quad -\delta_{m_2,m_3}\,\delta_{m_4,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}
+\Big]
+\Big\}
+\end{aligned}
+```
+
+**Simplification will be performed after all four terms are collected.**
+
+#### Term (B): $-\delta_{m_3,n_0'}\,\delta_{p,\mathbf{p}_3}$ — remaining operators $f^\dagger_{\mathbf{p}_1,m_1}\,f^\dagger_{\mathbf{p}+\mathbf{q},n'}\,f_{\mathbf{p}_2,m_2}\,f_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,m_4}$
+
+The SNEG Wick contraction gives:
+
+```math
+\begin{aligned}
+\theta(-\mathbf{k},n_0)\;\Big\{&
+-\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{m_1,n}\,\delta_{m_4,n'}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}} \\
+  &\quad +\theta(-\mathbf{p}_1)\,(\theta(-\mathbf{p}-\mathbf{q})-1)\,\delta_{m_1,m_4}\,\delta_{n,n'}\,\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}}\,\delta_{\mathbf{p}_1,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}
+\Big] \\
++\;&\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{m_1,n}\,\delta_{m_2,n'}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}} \\
+  &\quad +\theta(-\mathbf{p}_1)\,(\theta(-\mathbf{p}-\mathbf{q})-1)\,\delta_{m_1,m_2}\,\delta_{n,n'}\,\delta_{\mathbf{p}_1,\mathbf{p}_2}\,\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}}
+\Big] \\
++\;&\theta(-\mathbf{p}_1)\,\theta(-\mathbf{p}-\mathbf{q})\,\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}\Big[
+  \delta_{m_1,m_4}\,\delta_{m_2,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}\,\delta_{\mathbf{p}_1,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} \\
+  &\quad -\delta_{m_1,m_2}\,\delta_{m_4,n'}\,\delta_{\mathbf{p}_1,\mathbf{p}_2}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}
+\Big]
+\Big\}
+\end{aligned}
+```
+
+#### Term (C): $\delta_{m_2,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}$ — remaining operators $f^\dagger_{\mathbf{p}_1,m_1}\,f^\dagger_{\mathbf{p}_3,m_3}\,f_{\mathbf{p},n_0'}\,f_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,m_4}$
+
+The SNEG Wick contraction gives:
+
+```math
+\begin{aligned}
+\theta(-\mathbf{k},n_0)\;\Big\{&
+\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}
+\Big] \\
++\;&\delta_{\mathbf{k},\mathbf{p}}\,\delta_{n_0,n_0'}\Big[
+  \theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,m_4}\,\delta_{m_3,n}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_1,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} \\
+  &\quad -\theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,m_4}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}
+\Big] \\
++\;&\theta(-\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}\Big[
+  \delta_{m_1,m_4}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} \\
+  &\quad -\delta_{m_1,n_0'}\,\delta_{m_3,m_4}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}
+\Big]
+\Big\}
+\end{aligned}
+```
+
+#### Term (D): $-\delta_{m_4,n'}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}$ — remaining operators $f^\dagger_{\mathbf{p}_1,m_1}\,f^\dagger_{\mathbf{p}_3,m_3}\,f_{\mathbf{p},n_0'}\,f_{\mathbf{p}_2,m_2}$
+
+The SNEG Wick contraction gives:
+
+```math
+\begin{aligned}
+\theta(-\mathbf{k},n_0)\;\Big\{&
+\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}
+\Big] \\
++\;&\delta_{\mathbf{k},\mathbf{p}}\,\delta_{n_0,n_0'}\Big[
+  \theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,m_2}\,\delta_{m_3,n}\,\delta_{\mathbf{p}_1,\mathbf{p}_2}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_2,m_3}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}
+\Big] \\
++\;&\theta(-\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}\Big[
+  \delta_{m_1,m_2}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{p}_2} \\
+  &\quad -\delta_{m_1,n_0'}\,\delta_{m_2,m_3}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}
+\Big]
+\Big\}
+\end{aligned}
+```
+
+**All four raw SNEG results are now collected. Simplification proceeds below.**
+
+### 3.5 Simplification of the Wick Contraction Results
+
+#### Step 1: Drop the $\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}$ groups
+
+Every term contains a third group proportional to $\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}\,\delta_{n,n_0}$. This forces $\mathbf{q} = 0$ and $n = n_0$. Since $n_0 \in \text{occ}(\mathbf{k})$ and $n \in \text{unocc}(\mathbf{k})$ at $\mathbf{q}=0$, we have $n \neq n_0$. **All such groups vanish.**
+
+#### Step 2: Set $\theta(-\mathbf{k}, n_0) = 1$
+
+The overall prefactor $\theta(-\mathbf{k}, n_0) = \bar{n}_{n_0}(\mathbf{k}) = 1$ since $n_0 \in \text{occ}(\mathbf{k})$.
+
+#### Step 3: Identify which $\theta$ factors involve external indices
+
+The key to simplification is recognizing which $\theta$ factors correspond to external (fixed occ/unocc) indices versus internal (summation) indices:
+
+- **Terms A and B**: the remaining four operators include $f^\dagger_{\mathbf{p}+\mathbf{q},n'}$ from the bilinear (with $n' \in \text{unocc}$). Its Wick contraction produces $\theta(-\mathbf{p}-\mathbf{q}) = \bar{n}_{n'}(\mathbf{p}+\mathbf{q}) = 0$ or $\theta(\mathbf{p}+\mathbf{q}) = 1 - \bar{n}_{n'} = 1$. Hence $\theta(-\mathbf{p}-\mathbf{q}) - 1 = -1$.
+
+- **Terms C and D**: the remaining four operators include $f_{\mathbf{p},n_0'}$ from the bilinear (with $n_0' \in \text{occ}$). All $\theta$ factors are on internal summation indices $(\mathbf{p}_1, m_1)$ and $(\mathbf{p}_3, m_3)$, which cannot be simplified without knowing the band structure.
+
+#### Step 4: Simplify Terms A and B
+
+In Terms A and B, every sub-contraction contains either $\theta(-\mathbf{p}-\mathbf{q}) = 0$ or $(\theta(-\mathbf{p}-\mathbf{q})-1) = -1$:
+
+- Sub-terms with $\theta(-\mathbf{p}-\mathbf{q})$: **vanish**
+- Sub-terms with $(\theta(-\mathbf{p}-\mathbf{q})-1) = -1$: **survive**, and they all require $\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}}$ (i.e., $\mathbf{k} = \mathbf{p}$) plus $\delta_{n,n'}$ and internal self-contraction deltas ($\delta_{m_i,m_j}$ with $\delta_{\mathbf{p}_i,\mathbf{p}_j}$). These are **self-energy-type** contractions involving a Fermi-sea summation.
+
+**Surviving terms from A** (after setting $\theta(-\mathbf{k}) = 1$, $\theta(-\mathbf{p}-\mathbf{q}) - 1 = -1$, dropping $\theta(-\mathbf{p}-\mathbf{q}) = 0$ terms):
+
+```math
+\begin{aligned}
+\text{(A)} = &+\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\,\theta(-\mathbf{p}_3)\,\delta_{m_3,m_4}\,\delta_{n,n'}\,\delta_{\mathbf{k},\mathbf{p}}\,\delta_{\mathbf{p}_1,\mathbf{p}_2} \\
+&-\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\,\theta(-\mathbf{p}_3)\,\delta_{m_2,m_3}\,\delta_{n,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}\,\delta_{\mathbf{k},\mathbf{p}}
+\end{aligned}
+```
+
+(Here we used $\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} = \delta_{\mathbf{p}_1,\mathbf{p}_2}$ and $\delta_{\mathbf{k}+\mathbf{q},\mathbf{p}+\mathbf{q}} = \delta_{\mathbf{k},\mathbf{p}}$.)
+
+**Surviving terms from B** (same logic):
+
+```math
+\begin{aligned}
+\text{(B)} = &+\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\,\theta(-\mathbf{p}_1)\,\delta_{m_1,m_4}\,\delta_{n,n'}\,\delta_{\mathbf{k},\mathbf{p}}\,\delta_{\mathbf{p}_1,\mathbf{p}_2} \\
+&-\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\,\theta(-\mathbf{p}_1)\,\delta_{m_1,m_2}\,\delta_{n,n'}\,\delta_{\mathbf{p}_1,\mathbf{p}_2}\,\delta_{\mathbf{k},\mathbf{p}}
+\end{aligned}
+```
+
+These self-energy terms will be combined with $\mathcal{H}_0$ and $\mathcal{H}_{\text{SE}}$ in §3.6.
+
+#### Step 5: Simplify Terms C and D
+
+Terms C and D contain no $\theta(-\mathbf{p}-\mathbf{q})$ factor. After dropping the $\delta_{\mathbf{k},\mathbf{k}+\mathbf{q}}$ group and setting $\theta(-\mathbf{k}) = 1$, each retains two groups:
+
+- **First group**: all four external band indices ($n, n_0, n', n_0'$) appear — **scattering kernel**
+- **Second group**: has $\delta_{\mathbf{k},\mathbf{p}}\,\delta_{n_0,n_0'}$ with internal self-contractions — **self-energy**
+
+**From Term (C)** ($\delta_{m_2,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}$):
+
+```math
+\begin{aligned}
+\text{(C)}_{\text{scat}} = \;&\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}
+\Big]
+\end{aligned}
+```
+
+```math
+\begin{aligned}
+\text{(C)}_{\text{SE}} = \;&\delta_{\mathbf{k},\mathbf{p}}\,\delta_{n_0,n_0'}\Big[
+  \theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,m_4}\,\delta_{m_3,n}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_1,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3} \\
+  &\quad -\theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,m_4}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}\,\delta_{\mathbf{p}_3,\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}
+\Big]
+\end{aligned}
+```
+
+**From Term (D)** ($-\delta_{m_4,n'}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}$):
+
+```math
+\begin{aligned}
+\text{(D)}_{\text{scat}} = \;&\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\Big[
+  \theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}
+\Big]
+\end{aligned}
+```
+
+```math
+\begin{aligned}
+\text{(D)}_{\text{SE}} = \;&\delta_{\mathbf{k},\mathbf{p}}\,\delta_{n_0,n_0'}\Big[
+  \theta(-\mathbf{p}_1)\,\theta(\mathbf{p}_3)\,\delta_{m_1,m_2}\,\delta_{m_3,n}\,\delta_{\mathbf{p}_1,\mathbf{p}_2}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}} \\
+  &\quad -\theta(\mathbf{p}_1)\,\theta(-\mathbf{p}_3)\,\delta_{m_1,n}\,\delta_{m_2,m_3}\,\delta_{\mathbf{p}_2,\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}
+\Big]
+\end{aligned}
+```
+
+#### Summary of classification
+
+| Term | Commutator sign | Scattering contributions | Self-energy contributions |
+|---|---|---|---|
+| A ($\delta_{m_1,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_1}$) | $+1$ | none (all vanish via $\theta(-\mathbf{p}-\mathbf{q})=0$) | 2 terms |
+| B ($-\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}$) | $-1$ | none (all vanish via $\theta(-\mathbf{p}-\mathbf{q})=0$) | 2 terms |
+| C ($\delta_{m_2,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}$) | $-1$ | 2 terms | 2 terms |
+| D ($-\delta_{m_4,n'}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}$) | $+1$ | 2 terms | 2 terms |
+
+The **scattering kernel** comes entirely from Terms C and D (4 sub-terms total). The **self-energy** comes from all four terms (8 sub-terms total).
+
+### 3.6 Extracting the Scattering Kernel
+
+We now resolve the delta functions in the 4 scattering sub-terms to obtain the explicit $V$ tensor arguments and signs. The overall sign of each contribution is:
+
+$$\text{total sign} = \underbrace{(-1/N)}_{\text{from } :H_{\text{int}}:} \times \underbrace{(\pm 1)}_{\text{commutator } \delta \text{ sign}} \times \underbrace{(\pm 1)}_{\text{Wick sign from SNEG}}$$
+
+where the commutator $\delta$ sign is $+1$ for Terms A, C (from $+\delta_{1,6}$, $+\delta_{2,5}$ after accounting for the $c^\dagger c^\dagger cc$ ordering) and $-1$ for Terms B, D (from $-\delta_{3,6}$, $-\delta_{4,5}$). The Wick sign is the sign of each sub-contraction as given by the SNEG output.
+
+#### Sub-term C-1: from $\text{(C)}_{\text{scat}}$, first line
+
+Commutator delta: $+\delta_{m_2,n'}\,\delta_{\mathbf{p}_2,\mathbf{p}+\mathbf{q}}$. Wick deltas: $\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}$.
+
+Resolving: $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{p}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{p}_3 = \mathbf{p}$, $\mathbf{p}_4 = \mathbf{k}$. Band indices: $m_1 = n$, $m_2 = n'$, $m_3 = n_0'$, $m_4 = n_0$.
+
+$\theta$ factors: $\theta(\mathbf{k}+\mathbf{q}, n) = 1$ (unocc), $\theta(-\mathbf{p}, n_0') = 1$ (occ). Product = 1.
+
+Signs: $(-1/N) \times (+1)_{\text{comm}} \times (+1)_{\text{Wick}} = -1/N$.
+
+$\Rightarrow$ **Contribution**: $-\frac{1}{N}\,\widetilde{V}_{n,\, n',\, n_0',\, n_0}(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$
+
+Momentum transfer: $\mathbf{p}_1 - \mathbf{p}_2 = \mathbf{k} - \mathbf{p}$ → **direct channel**.
+
+#### Sub-term C-2: from $\text{(C)}_{\text{scat}}$, second line
+
+Same commutator delta ($+1$). Wick deltas: $\delta_{m_4,n_0}\,\delta_{\mathbf{k},\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3}\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}$.
+
+Resolving: $\mathbf{p}_1 = \mathbf{p}$, $\mathbf{p}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{p}_4 = \mathbf{k}$. Band indices: $m_1 = n_0'$, $m_2 = n'$, $m_3 = n$, $m_4 = n_0$.
+
+$\theta$ factors: $\theta(-\mathbf{p}, n_0') = 1$ (occ), $\theta(\mathbf{k}+\mathbf{q}, n) = 1$ (unocc). Product = 1.
+
+Signs: $(-1/N) \times (+1)_{\text{comm}} \times (-1)_{\text{Wick}} = +1/N$.
+
+$\Rightarrow$ **Contribution**: $+\frac{1}{N}\,\widetilde{V}_{n_0',\, n',\, n,\, n_0}(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$
+
+Momentum transfer: $\mathbf{p}_1 - \mathbf{p}_2 = -\mathbf{q}$ → **exchange channel**.
+
+#### Sub-term D-1: from $\text{(D)}_{\text{scat}}$, first line
+
+Commutator delta: $-\delta_{m_4,n'}\,\delta_{\mathbf{p}_1-\mathbf{p}_2+\mathbf{p}_3,\mathbf{p}+\mathbf{q}}$ (sign $-1$). Wick deltas: $\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\,\delta_{m_1,n}\,\delta_{m_3,n_0'}\,\delta_{\mathbf{p},\mathbf{p}_3}\,\delta_{\mathbf{p}_1,\mathbf{k}+\mathbf{q}}$.
+
+Resolving: $\mathbf{p}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{p}_2 = \mathbf{k}$, $\mathbf{p}_3 = \mathbf{p}$, $\mathbf{p}_4 = \mathbf{p}+\mathbf{q}$. Band indices: $m_1 = n$, $m_2 = n_0$, $m_3 = n_0'$, $m_4 = n'$.
+
+$\theta$ factors: $\theta(\mathbf{k}+\mathbf{q}, n) = 1$ (unocc), $\theta(-\mathbf{p}, n_0') = 1$ (occ). Product = 1.
+
+Signs: $(-1/N) \times (-1)_{\text{comm}} \times (+1)_{\text{Wick}} = +1/N$.
+
+$\Rightarrow$ **Contribution**: $+\frac{1}{N}\,\widetilde{V}_{n,\, n_0,\, n_0',\, n'}(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$
+
+Momentum transfer: $\mathbf{p}_1 - \mathbf{p}_2 = \mathbf{q}$ → **exchange channel**.
+
+#### Sub-term D-2: from $\text{(D)}_{\text{scat}}$, second line
+
+Same commutator delta ($-1$). Wick deltas: $\delta_{\mathbf{k},\mathbf{p}_2}\,\delta_{m_2,n_0}\,\delta_{m_1,n_0'}\,\delta_{m_3,n}\,\delta_{\mathbf{p},\mathbf{p}_1}\,\delta_{\mathbf{p}_3,\mathbf{k}+\mathbf{q}}$.
+
+Resolving: $\mathbf{p}_1 = \mathbf{p}$, $\mathbf{p}_2 = \mathbf{k}$, $\mathbf{p}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{p}_4 = \mathbf{p}+\mathbf{q}$. Band indices: $m_1 = n_0'$, $m_2 = n_0$, $m_3 = n$, $m_4 = n'$.
+
+$\theta$ factors: $\theta(-\mathbf{p}, n_0') = 1$ (occ), $\theta(\mathbf{k}+\mathbf{q}, n) = 1$ (unocc). Product = 1.
+
+Signs: $(-1/N) \times (-1)_{\text{comm}} \times (-1)_{\text{Wick}} = -1/N$.
+
+$\Rightarrow$ **Contribution**: $-\frac{1}{N}\,\widetilde{V}_{n_0',\, n_0,\, n,\, n'}(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$
+
+Momentum transfer: $\mathbf{p}_1 - \mathbf{p}_2 = \mathbf{p} - \mathbf{k}$ → **direct channel**.
+
+#### Topology classification
+
+| Sub-term | $V$ band indices | $V$ momenta $(\mathbf{p}_1, \mathbf{p}_2, \mathbf{p}_3)$ | $\mathbf{p}_1 - \mathbf{p}_2$ | Sign | Topology |
+|---|---|---|---|---|---|
+| C-1 | $(n, n', n_0', n_0)$ | $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ | $\mathbf{k}-\mathbf{p}$ | $-1/N$ | Direct |
+| D-2 | $(n_0', n_0, n, n')$ | $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$ | $\mathbf{p}-\mathbf{k}$ | $-1/N$ | Direct |
+| D-1 | $(n, n_0, n_0', n')$ | $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ | $\mathbf{q}$ | $+1/N$ | Exchange |
+| C-2 | $(n_0', n', n, n_0)$ | $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$ | $-\mathbf{q}$ | $+1/N$ | Exchange |
+
+Each channel receives **two contributions** with different $V$ momentum arguments. The signs (**direct $-$, exchange $+$**) match the original derivation exactly.
+
+### 3.7 Explicit Kernel Expressions in Orbital Basis
+
+Transforming back to the orbital basis using $\widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3) = \sum_{abcd} U^*_{am_1}(\mathbf{p}_1)\, U_{bm_2}(\mathbf{p}_2)\, U^*_{cm_3}(\mathbf{p}_3)\, U_{dm_4}(\mathbf{p}_4)\; \widetilde{V}^{abcd}(\mathbf{p}_1,\mathbf{p}_2,\mathbf{p}_3)$:
+
+**(A) Direct channel** $\mathcal{K}^{\text{d}}$:
 
 ```math
 \boxed{
@@ -534,26 +652,7 @@ From (I-a)-γA and (II-a)-γB. Physical process: the interaction line connects t
 }
 ```
 
-Feynman diagram (both contributions have the same topology):
-
-```
-  particle: (p+q, n') ──[V]──▸ (k+q, n)
-                            |
-  hole:     (k, n₀)   ──[V]──▸ (p, n₀')
-```
-
-**First term** (from (I-a)-γA): $\widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{p}+\mathbf{q}, \mathbf{p})$, where the first bilinear pair $(a,b)$ of the interaction connects particle-out and particle-in, and the second pair $(c,d)$ connects hole-out and hole-in.
-
-**Second term** (from (II-a)-γB): $\widetilde{V}^{abcd}(\mathbf{p}, \mathbf{k}, \mathbf{k}+\mathbf{q})$, where the first pair $(a,b)$ connects hole-out and hole-in, and the second pair $(c,d)$ connects particle-out and particle-in. This is the same physical process with the roles of the two bilinear pairs in $H_{\text{int}}$ swapped.
-
-Momentum conservation checks:
-
-- First term: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{k}_3 = \mathbf{p}$, $\mathbf{k}_4 = \mathbf{k}$. ✓
-- Second term: $\mathbf{k}_1 = \mathbf{p}$, $\mathbf{k}_2 = \mathbf{k}$, $\mathbf{k}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_4 = \mathbf{p}+\mathbf{q}$. ✓
-
-**(B2) Exchange channel** $\mathcal{K}^{\text{x}}$:
-
-From (II-a)-γA and (I-a)-γB. Physical process: the particle and hole lines cross through the interaction vertex.
+**(B) Exchange channel** $\mathcal{K}^{\text{x}}$:
 
 ```math
 \boxed{
@@ -566,48 +665,21 @@ From (II-a)-γA and (I-a)-γB. Physical process: the particle and hole lines cro
 }
 ```
 
-Feynman diagram (both contributions have the same topology):
+> **Consistency check**: The kernel expressions are identical to the original derivation (which used the $c^\dagger c c^\dagger c$ ordering): direct channel carries $-1/N$ and exchange channel carries $+1/N$. The normal-ordering approach produces the same signs because the $-1$ prefactor from $:H_{\text{int}}:$ is exactly compensated by the different Wick contraction structure of the normal-ordered quartic.
 
-```
-  particle: (p+q, n') ──╲    ╱──▸ (k+q, n)
-                          ╲  ╱
-                           ╳  [V]
-                          ╱  ╲
-  hole:     (k, n₀)   ──╱    ╲──▸ (p, n₀')
-```
+### 3.8 Self-Energy Contributions and the Mean-Field Part
 
-**First term** (from (II-a)-γA): $\widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q}, \mathbf{k}, \mathbf{p})$, where the first pair $(a,b)$ connects particle-out to hole-in, and the second pair $(c,d)$ connects hole-out to particle-in.
-
-**Second term** (from (I-a)-γB): $\widetilde{V}^{abcd}(\mathbf{p}, \mathbf{p}+\mathbf{q}, \mathbf{k}+\mathbf{q})$, the same topology with swapped bilinear pair roles.
-
-Momentum conservation checks:
-
-- First term: $\mathbf{k}_1 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_2 = \mathbf{k}$, $\mathbf{k}_3 = \mathbf{p}$, $\mathbf{k}_4 = \mathbf{p}+\mathbf{q}$. ✓
-- Second term: $\mathbf{k}_1 = \mathbf{p}$, $\mathbf{k}_2 = \mathbf{p}+\mathbf{q}$, $\mathbf{k}_3 = \mathbf{k}+\mathbf{q}$, $\mathbf{k}_4 = \mathbf{k}$. ✓
-
-> **Note on signs**: The direct channel carries a minus sign and the exchange channel carries a plus sign, arising from the relative fermion signs in the different contraction topologies. The specific signs depend on the operator ordering convention ($c^\dagger c c^\dagger c$) of the original Hamiltonian and the number of fermion line crossings in the Wick contractions.
-
-> **Physical origin of the two terms per channel**: The Hamiltonian $H_{\text{int}} = \frac{1}{N}\sum V^{abcd} c^\dagger_a c_b c^\dagger_c c_d$ contains two bilinear pairs: $(c^\dagger_a c_b)$ and $(c^\dagger_c c_d)$. When computing $[H_{\text{int}}, f^\dagger f]$, Part I of the commutator (§5.3) acts on the first pair, while Part II acts on the second pair. For each topology (direct or exchange), the external operators can match against *either* bilinear pair of $H_{\text{int}}$, generating two contributions with different $V$ momentum arguments. This is a direct consequence of the $c^\dagger c c^\dagger c$ ordering — unlike the normal-ordered $\frac{1}{2}c^\dagger c^\dagger cc$ form where antisymmetry absorbs this doubling into a factor of 2.
-
-### 5.6.1 Simplification for On-Site Interactions
-
-For **on-site interactions** (e.g., Hubbard, Kanamori), $\widetilde{V}^{abcd}$ is independent of momenta. In this case, the second term in each channel can be related to the first by relabeling dummy orbital indices $a \leftrightarrow c$, $b \leftrightarrow d$:
+The self-energy sub-terms from all four terms (A, B, C, D) require $\mathbf{k} = \mathbf{p}$ and involve Fermi-sea summations over internal indices. Combined with $\mathcal{H}_0$ (§3.2) and $\mathcal{H}_{\text{SE}}$ (§3.2.1), they produce the full diagonal mean-field energy:
 
 ```math
-\text{Second term of } \mathcal{K}^{\text{d}}: \quad \sum_{abcd} [\cdots]\, \widetilde{V}^{abcd} \xrightarrow{a\leftrightarrow c,\, b\leftrightarrow d} \sum_{abcd} [\cdots]\, \widetilde{V}^{cdab}
+(\mathcal{H}_{\text{MF}})^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \delta_{\mathbf{k}\mathbf{p}}\,\delta_{n_0 n_0'}\,\delta_{nn'}\left(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k}\right)
 ```
 
-so the direct kernel becomes
+This is the free particle-hole pair energy: particle energy minus hole energy.
 
-```math
-\mathcal{K}^{\text{d}} \propto \sum_{abcd} U^*_{an}\, U_{bn'}\, U^*_{cn_0'}\, U_{dn_0} \left[\widetilde{V}^{abcd} + \widetilde{V}^{cdab}\right]
-```
+> **Note**: The detailed verification that the self-energy sub-terms combine with $\mathcal{H}_0 + \mathcal{H}_{\text{SE}}$ to produce exactly the diagonal mean-field energies $E^n_\mathbf{k}$ is a standard result of the Hartree-Fock self-consistency condition and follows the same logic as in the original derivation.
 
-and similarly for $\mathcal{K}^{\text{x}}$. This is equivalent to replacing $\widetilde{V}$ by a "particle-exchange-symmetrized" interaction $\bar{V}^{abcd} = \widetilde{V}^{abcd} + \widetilde{V}^{cdab}$.
-
-> **Warning**: For **momentum-dependent interactions** (including on-site interactions in a reduced Brillouin zone, e.g., after magnetic unit cell folding), the two $V$ terms have genuinely different momentum arguments and **cannot** be combined by simple relabeling. They must be evaluated separately.
-
-### 5.7 Final Result
+### 3.9 Final Result
 
 ```math
 \boxed{
@@ -617,180 +689,6 @@ and similarly for $\mathcal{K}^{\text{x}}$. This is equivalent to replacing $\wi
 
 where:
 
-- **First term**: free particle-hole pair energy (entirely from the mean field), diagonal in all indices
-- **Second term**: direct channel kernel $\mathcal{K}^{\text{d}}$, with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$
-- **Third term**: exchange channel kernel $\mathcal{K}^{\text{x}}$, with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$
-
-In the general case both channels contribute. Depending on the symmetries of a specific model, one of them may vanish. **Both kernel terms couple different hole bands** ($n_0 \neq n_0'$), which is essential for correctly describing collective excitations involving multiple valence bands.
-
----
-
-## 6. Full Random Phase Approximation (RPA)
-
-In the Tamm-Dancoff Approximation (TDA) discussed above, we assume the ground state is the absolute Hartree-Fock vacuum, and collective excitations consist purely of creating particle-hole pairs. However, in systems with strong correlations or spontaneous symmetry breaking (such as an antiferromagnetic state), the true ground state contains zero-point quantum fluctuations and is pre-mixed with "virtual" particle-hole pairs. 
-
-The full **Random Phase Approximation (RPA)** allows collective excitations not only to *create* particle-hole pairs (the forward process) but also to *annihilate* existing particle-hole pairs from the correlated ground state (the backward process).
-
-### 6.1 The RPA Excitation Operator with Definite Momentum
-
-To ensure the excited state $|\mu, \mathbf{q}\rangle$ carries a definite total momentum $\mathbf{q}$, we must carefully construct the backward operator:
-- **Forward process**: $f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0}$ creates a particle at $\mathbf{k}+\mathbf{q}$ and a hole at $\mathbf{k}$. The total momentum transferred is $(\mathbf{k}+\mathbf{q}) - \mathbf{k} = +\mathbf{q}$.
-- **Backward process**: To provide the same total momentum $+\mathbf{q}$, the backward operator must be $f^\dagger_{\mathbf{k}+\mathbf{q}, n_0}\, f_{\mathbf{k}, n}$. This annihilates a particle-hole pair by putting an electron back into the occupied band $n_0$ at $\mathbf{k}+\mathbf{q}$ and removing one from the unoccupied band $n$ at $\mathbf{k}$.
-
-The complete parametrized RPA excited state is:
-
-```math
-|\mu, \mathbf{q}\rangle_{\text{RPA}} = \sum_{\mathbf{k}, n_0, n} \left[ X^{n_0 n}_\mathbf{k}(\mu, \mathbf{q})\, f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0} - Y^{n_0 n}_\mathbf{k}(\mu, \mathbf{q})\, f^\dagger_{\mathbf{k}+\mathbf{q}, n_0}\, f_{\mathbf{k}, n} \right] |G\rangle
-```
-
-where $X$ represents the forward excitation amplitudes and $Y$ represents the backward (de-excitation) amplitudes.
-
-### 6.2 Equation of Motion and Matrix Structure
-
-Using the equation of motion $[H, \hat{O}^\dagger_{\mu\mathbf{q}}] |G\rangle = \varepsilon_\mu \hat{O}^\dagger_{\mu\mathbf{q}} |G\rangle$ and taking the inner product with the forward and backward test operators, we obtain the standard block-matrix RPA equation:
-
-```math
-\begin{pmatrix} \mathcal{A}(\mathbf{q}) & \mathcal{B}(\mathbf{q}) \\ -\mathcal{B}^*(\mathbf{q}) & -\mathcal{A}^*(\mathbf{q}) \end{pmatrix} \begin{pmatrix} X(\mu, \mathbf{q}) \\ Y(\mu, \mathbf{q}) \end{pmatrix} = \varepsilon_\mu(\mathbf{q}) \begin{pmatrix} X(\mu, \mathbf{q}) \\ Y(\mu, \mathbf{q}) \end{pmatrix}
-```
-
-Here, the $\mathcal{A}$ matrix is exactly the TDA effective Hamiltonian derived in §5:
-
-```math
-\mathcal{A}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) \equiv \mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [H,\; f^\dagger_{\mathbf{p}+\mathbf{q}, n'}\, f_{\mathbf{p}, n_0'}]\, |G\rangle
-```
-
-The new $\mathcal{B}$ matrix captures the coupling between forward and backward excitations, originating entirely from the two-body interaction $H_{\text{int}}$ (since the one-body $H_0$ conserves the number of particle-hole pairs):
-
-```math
-\mathcal{B}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) \equiv \langle G|\, f^\dagger_{\mathbf{k}, n_0}\, f_{\mathbf{k}+\mathbf{q}, n}\; [H_{\text{int}},\; f^\dagger_{\mathbf{p}+\mathbf{q}, n_0'}\, f_{\mathbf{p}, n'}]\, |G\rangle
-```
-
-### 6.3 Explicit Expressions for the $\mathcal{B}$ Matrix
-
-Comparing the definition of $\mathcal{B}$ with that of $\mathcal{A}$, the right-hand test operator $f^\dagger_{\mathbf{p}+\mathbf{q}, n_0'}\, f_{\mathbf{p}, n'}$ simply swaps the roles of the particle and hole indices on the $\mathbf{p}$ side. 
-
-Therefore, we do not need to re-evaluate the complex Wick contractions from scratch. We can take the $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$ formulas derived in §5.6 and **swap the particle and hole indices on the right side (the $\mathbf{p}$ and $\mathbf{p}+\mathbf{q}$ side)**:
-- Replace the outgoing particle index $n'$ with $n_0'$
-- Replace the incoming hole index $n_0'$ with $n'$
-
-Applying this index swap yields the two topological channels for the $\mathcal{B}$ matrix:
-
-**(B1) Direct channel (density channel) for the $\mathcal{B}$ matrix:**
-
-```math
-\begin{aligned}
-\mathcal{B}^{\text{d},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = -\frac{1}{N}\sum_{abcd} \Big[
-& U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn_0'}(\mathbf{p}+\mathbf{q})\, U^*_{cn'}(\mathbf{p})\, U_{dn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q},\, \mathbf{p}+\mathbf{q},\, \mathbf{p}) \\
-+\; & U^*_{an'}(\mathbf{p})\, U_{bn_0}(\mathbf{k})\, U^*_{cn}(\mathbf{k}+\mathbf{q})\, U_{dn_0'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{p},\, \mathbf{k},\, \mathbf{k}+\mathbf{q})
-\Big]
-\end{aligned}
-```
-
-**(B2) Exchange channel for the $\mathcal{B}$ matrix:**
-
-```math
-\begin{aligned}
-\mathcal{B}^{\text{x},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = +\frac{1}{N}\sum_{abcd} \Big[
-& U^*_{an}(\mathbf{k}+\mathbf{q})\, U_{bn_0}(\mathbf{k})\, U^*_{cn'}(\mathbf{p})\, U_{dn_0'}(\mathbf{p}+\mathbf{q})\; \widetilde{V}^{abcd}(\mathbf{k}+\mathbf{q},\, \mathbf{k},\, \mathbf{p}) \\
-+\; & U^*_{an'}(\mathbf{p})\, U_{dn_0'}(\mathbf{p}+\mathbf{q})\, U^*_{cn}(\mathbf{k}+\mathbf{q})\, U_{bn_0}(\mathbf{k})\; \widetilde{V}^{abcd}(\mathbf{p},\, \mathbf{p}+\mathbf{q},\, \mathbf{k}+\mathbf{q})
-\Big]
-\end{aligned}
-```
-
-The total $\mathcal{B}$ matrix element is the sum of these two channels:
-
-```math
-\mathcal{B}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) = \mathcal{B}^{\text{d},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q}) + \mathcal{B}^{\text{x},\,n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})
-```
-
-### 6.4 Solving the RPA Eigenvalue Problem
-
-In a numerical implementation, if the number of valid $(\mathbf{k}, n_0, n)$ combinations is $M$, solving the TDA equations requires diagonalizing an $M \times M$ Hermitian matrix $\mathcal{A}$.
-
-For the full RPA, one must construct a $2M \times 2M$ non-Hermitian matrix:
-
-```math
-\mathcal{M}_{\text{RPA}} = \begin{pmatrix} \mathcal{A} & \mathcal{B} \\ -\mathcal{B}^* & -\mathcal{A}^* \end{pmatrix}
-```
-
-Diagonalizing this matrix yields eigenvalues that appear in pairs $(\varepsilon_\mu, -\varepsilon_\mu)$. The positive eigenvalues $\varepsilon_\mu > 0$ correspond to the physical collective excitation energies. 
-
-For an antiferromagnetic ground state, the inclusion of the $\mathcal{B}$ matrix rigorously incorporates the necessary quantum spin fluctuations. This mathematically guarantees the exact cancellation of any spurious single-particle gaps (which remain in the TDA approach), thereby restoring the gapless Goldstone mode at $\mathbf{q} \to 0$ in accordance with symmetry-breaking principles.
-
----
-
-## 7. Summary: Complete Computational Workflow from the Original Hamiltonian to the Excitation Spectrum
-
-1. **Hartree-Fock self-consistent calculation**:
-   - Initialize the density matrix $G^{ab}(\mathbf{k})$
-   - Construct $\mathcal{H}^{ab}(\mathbf{k}) = h^{ab}(\mathbf{k}) + \Sigma^{ab}(\mathbf{k})$
-   - Diagonalize to obtain $E^n_\mathbf{k}$, $U(\mathbf{k})$
-   - Update $G^{ab}(\mathbf{k})$, iterate until convergence
-
-2. **Construct the effective Hamiltonian**:
-   - For each $\mathbf{q}$, build the matrix $\mathcal{H}^{n_0 n,\, n_0' n'}_{\mathbf{k}\mathbf{p}}(\mathbf{q})$ with composite index $(\mathbf{k}, n_0, n)$
-   - Diagonal part: $\delta_{\mathbf{k}\mathbf{p}}\,\delta_{n_0 n_0'}\,\delta_{nn'}(E^n_{\mathbf{k}+\mathbf{q}} - E^{n_0}_\mathbf{k})$
-   - Off-diagonal part: $\mathcal{K}^{\text{d}} + \mathcal{K}^{\text{x}}$, each containing two $\widetilde{V}$ terms at different momentum arguments (see §5.6)
-
-3. **Diagonalize the effective Hamiltonian**:
-   - $\mathcal{H}^{\text{eff}}\, \psi = \varepsilon\, \psi$
-   - Eigenvalues $\varepsilon_\mu(\mathbf{q})$ give the excitation spectrum
-   - Eigenvectors $\psi^{n_0 n}_\mathbf{k}(\mu, \mathbf{q})$ give the excited-state wavefunctions
-
-4. **Physical observables**:
-   - Dynamic structure factor: $S(\mathbf{q}, \omega) = \sum_\mu |\langle \mu, \mathbf{q} | \hat{A}_\mathbf{q} | G \rangle|^2\, \delta(\omega - \varepsilon_\mu(\mathbf{q}))$
-   - where $\hat{A}_\mathbf{q}$ is the operator that couples to the excitation of interest (e.g., spin operator, density operator); its matrix elements are computed via $U$ and $\psi$
-
----
-
-## Appendix A: Useful Commutation Relations
-
-For fermionic bilinear operators:
-
-```math
-[f^\dagger_\alpha f_\beta,\; f^\dagger_\gamma f_\delta] = \delta_{\beta\gamma}\, f^\dagger_\alpha f_\delta - \delta_{\alpha\delta}\, f^\dagger_\gamma f_\beta
-```
-
-Derivation: using $\{f_\alpha, f^\dagger_\beta\} = \delta_{\alpha\beta}$,
-
-```math
-\begin{aligned}
-f^\dagger_\alpha f_\beta f^\dagger_\gamma f_\delta &= f^\dagger_\alpha (\delta_{\beta\gamma} - f^\dagger_\gamma f_\beta) f_\delta = \delta_{\beta\gamma}\, f^\dagger_\alpha f_\delta - f^\dagger_\alpha f^\dagger_\gamma f_\beta f_\delta \\
-f^\dagger_\gamma f_\delta f^\dagger_\alpha f_\beta &= \delta_{\delta\alpha}\, f^\dagger_\gamma f_\beta - f^\dagger_\gamma f^\dagger_\alpha f_\delta f_\beta = \delta_{\delta\alpha}\, f^\dagger_\gamma f_\beta - f^\dagger_\alpha f^\dagger_\gamma f_\beta f_\delta
-\end{aligned}
-```
-
-(The last step uses $f^\dagger_\gamma f^\dagger_\alpha = -f^\dagger_\alpha f^\dagger_\gamma$ and $f_\delta f_\beta = -f_\beta f_\delta$.) Subtracting the two expressions yields the result.
-
-## Appendix B: Brillouin's Theorem
-
-The matrix element of the full Hamiltonian $H$ between the Hartree-Fock ground state $|G\rangle$ and any single particle-hole excited state vanishes:
-
-```math
-\langle G | H | f^\dagger_{\mathbf{k}+\mathbf{q}, n}\, f_{\mathbf{k}, n_0} | G \rangle = 0 \quad (n \in \text{unocc}, \; n_0 \in \text{occ})
-```
-
-This is a direct consequence of the Hartree-Fock equations (the self-consistency condition). Physically, the Hartree-Fock ground state is the "optimal" single Slater determinant, whose energy cannot be lowered by any single particle-hole excitation.
-
-This theorem guarantees the validity of recasting $\varepsilon$ in commutator form in §4.2 ($H|G\rangle = E_G|G\rangle$ is effective within the single particle-hole subspace).
-
-## Appendix C: $U$-Matrix Transformation and the Orbital-to-Band Conversion of $\widetilde{V}$
-
-The interaction $\widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)$ in the original orbital space is transformed to the band basis via the $U$ matrix:
-
-```math
-\widetilde{V}_{m_1 m_2 m_3 m_4}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3) = \sum_{abcd} U^*_{am_1}(\mathbf{k}_1)\, U_{bm_2}(\mathbf{k}_2)\, U^*_{cm_3}(\mathbf{k}_3)\, U_{dm_4}(\mathbf{k}_4)\; \widetilde{V}^{abcd}(\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3)
-```
-
-where $\mathbf{k}_4 = \mathbf{k}_1 + \mathbf{k}_3 - \mathbf{k}_2$.
-
-The convention is that each orbital index in $\widetilde{V}^{abcd}$ is contracted with the $U$ matrix evaluated at the **corresponding momentum**: $a$ with $U^*(\mathbf{k}_1)$, $b$ with $U(\mathbf{k}_2)$, $c$ with $U^*(\mathbf{k}_3)$, $d$ with $U(\mathbf{k}_4)$. The boxed formulas for $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$ in §5.6 follow this convention exactly: each of the two $\widetilde{V}$ terms within each kernel has its own momentum assignment and its own $U$-matrix mapping.
-
-When constructing $\mathcal{K}^{\text{d}}$ and $\mathcal{K}^{\text{x}}$, only the components of $\widetilde{V}$ with specific band indices ($n, n', n_0, n_0'$) are needed. In practice, there is no need to fully transform the entire tensor — one can directly contract with the relevant columns of the $U$ matrix in orbital space. Note that each kernel requires **two calls** to the interaction function $\widetilde{V}^{abcd}(\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3)$ with different momentum arguments.
-
-**Implementation note**: When implementing the kernels as matrix multiplications, care must be taken with the index grouping. For a given $\widetilde{V}^{abcd}$ term, one must identify which orbital indices are "free" (to be projected onto bands by $U^\dagger$ and $U$) and which are "contracted" (summed against specific columns of $U$). The free-index pair differs between the direct and exchange topologies:
-
-- **Direct channel**: the first pair $(a,b)$ maps to (particle-out, particle-in) or (hole-out, hole-in) — in either case, the free indices for the output matrix are $(a,b)$, and the contracted indices are $(c,d)$.
-- **Exchange channel**: the first pair $(a,b)$ maps to (particle-out, hole-in) or (hole-out, particle-in) — the free indices for the output matrix are $(a,d)$, and the contracted indices are $(b,c)$. To use a matrix multiplication, the tensor must be permuted to $(a,d,b,c)$ order before reshaping.
-
-Confusing the free-index grouping between channels is equivalent to applying the direct-channel (bubble) topology to the exchange (crossed) diagram, or vice versa.
+- **First term**: free particle-hole pair energy (from the mean field), diagonal in all indices
+- **Second term**: direct channel kernel $\mathcal{K}^{\text{d}}$ (§3.7), with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{p}+\mathbf{q},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{k},\; \mathbf{k}+\mathbf{q})$
+- **Third term**: exchange channel kernel $\mathcal{K}^{\text{x}}$ (§3.7), with two $\widetilde{V}$ contributions at momentum arguments $(\mathbf{k}+\mathbf{q},\; \mathbf{k},\; \mathbf{p})$ and $(\mathbf{p},\; \mathbf{p}+\mathbf{q},\; \mathbf{k}+\mathbf{q})$

@@ -22,8 +22,9 @@ makedocs(;
             "Momentum Space"  => "hartreefock_momentum.md",
         ],
         "Collective excitations" => [
-            "Introduction"    => "collective_excitations.md",
-            "Particle-Hole Excitation" => "particle_hole.md"
+            "Introduction"    => "BSE_TDA_RPA.md",
+            "Tamm-Dancoff Approximation" => "particle_hole.md",
+            "Random Phase Approximation" => "particle_hole2.md",
         ],
         "Examples" => [
             "Visualization" => "plot.md",
@@ -31,6 +32,8 @@ makedocs(;
             "AFM on Honeycomb Lattice" => "SM_AFM.md",
             "Finite-T AFM on Cubic Lattice" => "Cubic_AFM.md",
             "Kane-Mele-Hubbard Model"       => "KMH.md",
+            "AFM Magnon Dispersion"         => "AFM_Magnon.md",
+            "Tasaki Flat-Band Ferromagnet"   => "Tasaki.md",
         ],
         "API Reference" => "api.md",
     ],

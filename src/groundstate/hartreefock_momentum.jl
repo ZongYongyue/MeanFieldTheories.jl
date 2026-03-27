@@ -1115,6 +1115,18 @@ function _run_scf_k(
         end
     end
 
+    # ── Final pass: recompute H_k, eigenvalues, eigenvectors, mu, energies
+    #    from the converged G_k so all returned quantities are mutually consistent.
+    build_heff_k!(H_k, T_k_func, wr_A, wr_B, wr_C, V_k_func, G_k, kpoints,
+                  G_taus_buf, g_adj_buf, f_buf, taus_needed, tau_idx;
+                  include_fock=include_fock)
+    evals, evecs = diagonalize_heff_k(H_k)
+    mu = find_chemical_potential_k(evals, n_electrons, temperature;
+                                   ene_cutoff=ene_cutoff)
+    energies = calculate_energies_k(evals, mu, temperature,
+                                    G_k, H_k, T_k_func, kpoints;
+                                    ene_cutoff=ene_cutoff)
+
     ncond = real(sum(G_k[a,a,ki] for a in 1:d, ki in 1:Nk)) / Nk
     return (G_k=G_k, eigenvalues=evals, eigenvectors=evecs,
             energies=energies, mu=mu,

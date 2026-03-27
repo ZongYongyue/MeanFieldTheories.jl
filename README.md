@@ -16,7 +16,7 @@ See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl/dev
 
 - **Unrestricted Hartree-Fock in both real and momentum space.** All four Wick contraction channels (Hartree and Fock, both pairs) are kept open with no preset symmetry breaking.
 
-- **Complete post-HF excitation spectrum.** On top of the mean-field ground state, collective modes are accessible using SMA, BSE and RPA, yielding dynamic structure factors and excitation gaps directly.
+- **Complete post-HF excitation spectrum.** On top of the mean-field ground state, collective modes are accessible using BSE/TDA and RPA, yielding dynamic structure factors and excitation gaps directly.
 
 ## Installation
 
@@ -196,24 +196,17 @@ Results:
 
 The calculated phase boundary at $V_c = U/4 = 1.0$ and the order parameter curves are in complete agreement with Fig. 5(b) of Ref. [1].
 
-### Magnon Spectrum
-
-This example will compute the magnon excitation spectrum using SMA. (See Ref. [2] for the theoretical background.)
-
-*Coming soon — to be added.*
 
 ## References
 
 [1] T. Aoyama, K. Yoshimi, K. Ido, Y. Motoyama, T. Kawamura, T. Misawa, T. Kato, and A. Kobayashi, [H-wave – A Python package for the Hartree-Fock approximation and the random phase approximation](https://doi.org/10.1016/j.cpc.2024.109087), Computer Physics Communications 298, 109087 (2024).
-
-[2] W.-X. Qiu and F. Wu, [Topological magnons and domain walls in twisted bilayer MoTe2](https://link.aps.org/doi/10.1103/sl5k-c825), Phys. Rev. B 112, 085132 (2025).
 
 
 ## Package Structure
 
 - **quantumsystem**: Core quantum system definitions, lattice structures, and operator algebra
 - **groundstate**: Ground state calculations using Hartree-Fock and mean-field methods
-- **excitations**: Excited state calculations using SMA, BSE and RPA.
+- **excitations**: Excited state calculations using BSE/TDA and RPA.
 
 ## Citation
 

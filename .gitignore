@@ -17,7 +17,10 @@ deps/src/
 docs/build/
 docs/site/
 
-#temp files
+# Claude 
+.claude
+
+# temp files
 /draft
 /examples/draft
 

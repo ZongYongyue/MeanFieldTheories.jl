@@ -38,11 +38,12 @@ using StaticArrays: SVector
 using SparseArrays: sparse, nnz
 
 using LinearAlgebra: norm, dot, eigen, Hermitian, tr, ishermitian,
-                     Diagonal, mul!, adjoint, transpose, eigvals, svd, diag
+                     Diagonal, mul!, adjoint, transpose, eigvals,
+                     svd, diag, cholesky, I, PosDefException, pinv
 
 import Dates  # used as Dates.now(), Dates.hour(), Dates.minute(), Dates.second()
 
-using Printf: @sprintf
+using Printf: @sprintf, @printf
 
 using Random: AbstractRNG, MersenneTwister, default_rng
 

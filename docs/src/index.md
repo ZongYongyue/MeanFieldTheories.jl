@@ -28,13 +28,16 @@ Pages = [
     "hartreefock_intro.md",
     "hartreefock_real.md",
     "hartreefock_momentum.md",
-    "collective_excitations.md",
+    "BSE_TDA_RPA.md",
     "particle_hole.md",
+    "particle_hole2.md",
     "plot.md",
     "SDW_CDW.md",
     "SM_AFM.md",
     "Cubic_AFM.md",
     "KMH.md",
+    "AFM_Magnon.md",
+    "Tasaki.md",
     "api.md",
 ]
 Depth = 2

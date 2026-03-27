@@ -1,430 +1,770 @@
 """
-Particle-hole excitation theory (TDA / Bethe-Salpeter equation) on top of the
-Hartree-Fock mean field, following the derivation in docs/src/particle_hole.md.
+Particle-hole excitation theory (TDA / RPA) on top of the Hartree-Fock mean
+field, following the derivation in docs/src/particle_hole.md and
+docs/src/particle_hole2.md.
 
-The central object is the effective Hamiltonian matrix (§5.7)
+## TDA (solver=:TDA, default)
+Diagonalizes the M×M Hermitian effective Hamiltonian A(q).
 
-    H^{n0 n, n0' n'}_{k p}(q) = δ_{kp} δ_{n0 n0'} δ_{nn'} (E^n_{k+q} - E^{n0}_k)
-                                + K^d_{k p}^{n0 n, n0' n'}(q)   [direct channel]
-                                + K^x_{k p}^{n0 n, n0' n'}(q)   [exchange channel]
+## RPA (solver=:RPA)
+Solves the full 2M×2M non-Hermitian eigenvalue problem:
+    (A  B; -B†  D)(X; Y) = ε(X; Y)
+where C = -B† (§4.1 of particle_hole2.md) and D is the backward-backward
+block.  When ±q share the same occupation spaces, D(q) = -A(-q)* is used
+(§2.6); otherwise D is computed directly (§5).
 
-whose eigenvalues ε_μ(q) are the collective excitation energies and whose
-eigenvectors ψ^{n0 n}_k(μ, q) are the particle-hole envelope functions.
+## Momentum handling
+Shifted momenta (k+q, p-q, …) are first folded back into the first BZ.
+If the folded point coincides with a k-mesh point, its HF eigensystem is reused
+directly.  Otherwise, the HF Hamiltonian is rebuilt and diagonalized on the fly
+via `energy_bands`.
 
-Composite index: (k, j0, n)  where
-  k  = excit sub-grid index (1:Nk_excit)
-  j0 = index into n0_list (j0-th hole band n0 = n0_list[j0])
-  n  = particle band index (from n_list, unoccupied at k+q)
-
-Index / layout conventions (Julia is column-major):
-  - eigenvectors from solve_hfk: Array{ComplexF64,3} of shape (d, d, Nk)
-    evecs[:, n, ki]  ↔  U_{a,n}(k),  i.e. the n-th column at k-point ki
-  - eigenvalues from solve_hfk:  Matrix{Float64} of shape (d, Nk)
-    eigenvalues[n, ki]  ↔  E^n_k
+## Index conventions
+  - eigenvectors: (d, d, Nk);  evecs[:, n, ki] ↔ U_{a,n}(k)
+  - eigenvalues:  (d, Nk);     eigenvalues[n, ki] ↔ E^n_k
 """
+
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Internal helpers: k-point index lookup
+# Internal helpers — BZ folding & eigensystem cache
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    _kindex_analytic(k, B_inv, Ns) -> Int
+    _fold_to_BZ(k, B_inv, B_mat) -> Vector{Float64}
 
-O(1) k-point index lookup for a **uniform rectangular** grid built by `build_kpoints`
-with `box_size = (N₁, N₂, ...)` (each dimension may differ).
-
-The grid is:  k_{m₁,m₂,...} = Σᵢ (mᵢ/Nᵢ) bᵢ,  mᵢ ∈ 0:Nᵢ-1.
-`build_kpoints` iterates via `Iterators.product(0:N₁-1, 0:N₂-1, ...)`, so dim-1
-varies fastest and the 1-based linear index is
-  `m[1] + m[2]*N₁ + m[3]*N₁*N₂ + ... + 1`.
-
-BZ folding is handled by `mod(round(frac[d] * Nd), Nd)`.
-
-# Arguments
-- `k`: target k-vector (may lie in any BZ image).
-- `B_inv`: pinv(hcat(b₁, b₂, ...)), pre-computed from reciprocal vectors.
-- `Ns::AbstractVector{Int}`: grid size along each dimension.
+Fold an arbitrary k-vector back into the first Brillouin zone by mapping its
+fractional coordinates to [0, 1).
 """
-function _kindex_analytic(k::AbstractVector, B_inv::AbstractMatrix, Ns::AbstractVector{Int})
-    frac = B_inv * k                                          # fractional BZ coordinates
-    m    = [mod(round(Int, frac[d] * Ns[d]), Ns[d]) for d in 1:length(Ns)]
-    # linear index: dim-1 fastest (Iterators.product convention)
-    idx    = m[1] + 1
-    stride = Ns[1]
-    for d in 2:length(Ns)
-        idx    += m[d] * stride
-        stride *= Ns[d]
+function _fold_to_BZ(k::AbstractVector, B_inv::AbstractMatrix, B_mat::AbstractMatrix)
+    frac = B_inv * k
+    frac_folded = [mod(f, 1.0) for f in frac]
+    # Snap values very close to 1.0 back to 0.0
+    for i in eachindex(frac_folded)
+        if frac_folded[i] > 1.0 - 1e-10
+            frac_folded[i] = 0.0
+        end
     end
-    return idx
+    return B_mat * frac_folded
 end
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Core: effective Hamiltonian matrix for a single q, all n0 in n0_list
-# ──────────────────────────────────────────────────────────────────────────────
+"""
+    _find_on_mesh(k_folded, kpoints_folded; tol) -> Union{Int, Nothing}
+
+Check if `k_folded` matches any point in `kpoints_folded` within tolerance.
+Returns the index if found, `nothing` otherwise.
+"""
+function _find_on_mesh(k_folded::AbstractVector, kpoints_folded::Vector{Vector{Float64}};
+                       tol::Real = 1e-8)
+    for (i, kp) in enumerate(kpoints_folded)
+        if all(abs.(k_folded .- kp) .< tol)
+            return i
+        end
+    end
+    return nothing
+end
 
 """
-    _build_heff_ph_excitation(n0_list, n_list, occ, kpoints, eigenvalues,
-                              eigenvectors, kq_indices, V_k_full; excit_to_hf)
-        -> (Matrix{ComplexF64}, Vector{Tuple{Int,Int,Int}})
+    EigenCache
 
-Build the effective Hamiltonian matrix H_eff(q) for **particle-hole** excitation
-momentum `q` over all hole bands `n0_list` (particle_hole.md §5.7).
-
-The composite row/col index is `(k, j0, n)` where:
-  - k  ∈ 1:Nk_excit (excit sub-grid index)
-  - j0 ∈ 1:length(n0_list), with n0 = n0_list[j0]
-  - n  ∈ n_list (particle band index)
-
-A triple `(k, j0, n)` is valid when:
-  1. Hole band n0 = n0_list[j0] is occupied at k:  `occ[n0, excit_to_hf[k]]`
-  2. Particle band n is unoccupied at k+q:          `!occ[n, kq_indices[k]]`
-  3. n ∈ n_list
-
-# Kernel formulas (§5.6, corrected — each channel has two V terms):
-  K^d = -(1/N) Σ_{abcd} [
-      U*_{a,n}(k+q) U_{b,n'}(p+q) U*_{c,n0'}(p) U_{d,n0}(k)  Ṽ^{abcd}(k+q, p+q, p)
-    + U*_{a,n0'}(p) U_{b,n0}(k) U*_{c,n}(k+q) U_{d,n'}(p+q)  Ṽ^{abcd}(p, k, k+q)
-  ]
-
-  K^x = +(1/N) Σ_{abcd} [
-      U*_{a,n}(k+q) U_{b,n0}(k) U*_{c,n0'}(p) U_{d,n'}(p+q)  Ṽ^{abcd}(k+q, k, p)
-    + U*_{a,n0'}(p) U_{b,n'}(p+q) U*_{c,n}(k+q) U_{d,n0}(k)  Ṽ^{abcd}(p, p+q, k+q)
-  ]
-
-  The two terms per channel arise from the two bilinear pairs in H_int
-  (see §5.4: contractions γ-A and γ-B from Terms (I-a) and (II-a)).
-  They involve V at genuinely different momentum arguments and cannot
-  be combined by index relabeling when V is momentum-dependent.
-
-# Returns
-- `H::Matrix{ComplexF64}` of shape (M, M) where M = number of valid triples.
-- `triples::Vector{Tuple{Int,Int,Int}}`: the `(k, j0, n)` triples.
+Caches eigenvalues and eigenvectors at arbitrary k-points.
+On-mesh points reuse the HF result; off-mesh points are computed via `energy_bands`.
 """
-function _build_heff_ph_excitation(
-    n0_list::Vector{Int},
-    n_list::Vector{Int},
-    occ::Matrix{Bool},
-    kpoints::Vector{Vector{Float64}},
-    eigenvalues::Matrix{Float64},
-    eigenvectors::Array{ComplexF64, 3},
-    kq_indices::Vector{Int},
-    V_k_full;
-    excit_to_hf::AbstractVector{Int} = 1:size(eigenvectors, 3)
+struct EigenCache
+    evals::Matrix{Float64}          # (norb, N_total) — all cached eigenvalues
+    evecs::Array{ComplexF64, 3}     # (norb, norb, N_total) — all cached eigenvectors
+    kvecs::Vector{Vector{Float64}}  # (N_total,) — the actual (folded) k-vectors
+    index_map::Dict{Int, Int}       # mesh ki -> cache index (for on-mesh lookups)
+end
+
+"""
+    _build_eigen_cache(shift, kpoints_hf, kpoints_folded, B_inv, B_mat,
+                       evals_hf, evecs_hf, dofs, onebody, twobody, G_k)
+
+For each k in `kpoints_hf`, compute eigensystem at `k + shift`:
+  1. Fold `k + shift` into the first BZ.
+  2. If the folded point is on the HF mesh, reuse its eigensystem.
+  3. Otherwise, batch-compute via `energy_bands`.
+
+Returns an EigenCache with Nk entries (one per HF k-point).
+"""
+function _build_eigen_cache(
+    shift::AbstractVector,
+    kpoints_hf::Vector{Vector{Float64}},
+    kpoints_folded::Vector{Vector{Float64}},
+    B_inv::AbstractMatrix,
+    B_mat::AbstractMatrix,
+    evals_hf::Matrix{Float64},
+    evecs_hf::Array{ComplexF64, 3},
+    dofs::SystemDofs,
+    onebody,
+    twobody,
+    G_k::Array{ComplexF64, 3}
 )
-    Nk_excit = length(excit_to_hf)
-    Nn0      = length(n0_list)
-    norb     = size(eigenvectors, 1)
+    Nk   = length(kpoints_hf)
+    norb = size(evals_hf, 1)
 
-    # ── Valid (k, j0, n) triples ───────────────────────────────────────────────
-    # Note: valid n at k is determined by !occ[n, kq_indices[k]] — independent of j0.
-    # Valid j0 at k requires occ[n0_list[j0], excit_to_hf[k]].
-    triples = [(k, j0, n)
-               for k  in 1:Nk_excit
-               for j0 in 1:Nn0
-               for n  in n_list
-               if occ[n0_list[j0], excit_to_hf[k]] && !occ[n, kq_indices[k]]]
-    M = length(triples)
-    M == 0 && error("_build_heff_ph_excitation: no valid particle-hole triples for n0_list=$n0_list")
+    # For each ki, fold k_i + shift and check if it's on mesh
+    folded_targets = Vector{Vector{Float64}}(undef, Nk)
+    mesh_hits      = Vector{Union{Int, Nothing}}(undef, Nk)  # index into HF mesh, or nothing
+    off_mesh_ki    = Int[]                                     # ki indices needing computation
 
-    H = zeros(ComplexF64, M, M)
-
-    # Index lookup: for composite (k, j0), which rows of H and which n bands?
-    # row_idx[(k-1)*Nn0 + j0] => Vector{Int} of row indices into H
-    # n_bands[(k-1)*Nn0 + j0] => Vector{Int} of corresponding n values
-    row_idx = [Int[] for _ in 1:(Nk_excit * Nn0)]
-    n_bands = [Int[] for _ in 1:(Nk_excit * Nn0)]
-    for (i, (k, j0, n)) in enumerate(triples)
-        slot = (k - 1) * Nn0 + j0
-        push!(row_idx[slot], i)
-        push!(n_bands[slot], n)
+    for ki in 1:Nk
+        k_shifted = kpoints_hf[ki] .+ shift
+        k_fold    = _fold_to_BZ(k_shifted, B_inv, B_mat)
+        folded_targets[ki] = k_fold
+        hit = _find_on_mesh(k_fold, kpoints_folded)
+        mesh_hits[ki] = hit
+        if hit === nothing
+            push!(off_mesh_ki, ki)
+        end
     end
 
-    # ── Diagonal: E^n_{k+q} - E^{n0}_k ───────────────────────────────────────
-    for (i, (k, j0, n)) in enumerate(triples)
-        n0 = n0_list[j0]
-        H[i, i] = eigenvalues[n, kq_indices[k]] - eigenvalues[n0, excit_to_hf[k]]
+    # Initialize cache arrays
+    cache_evals = Matrix{Float64}(undef, norb, Nk)
+    cache_evecs = Array{ComplexF64, 3}(undef, norb, norb, Nk)
+
+    # Fill on-mesh entries from HF data
+    index_map = Dict{Int, Int}()
+    for ki in 1:Nk
+        hit = mesh_hits[ki]
+        if hit !== nothing
+            cache_evals[:, ki]    = evals_hf[:, hit]
+            cache_evecs[:, :, ki] = evecs_hf[:, :, hit]
+        end
+        index_map[ki] = ki
     end
 
-    # ── K^d + K^x: loop over (k, p) pairs, then (j0, j0') pairs ──────────────
-    #
-    # §5.6 kernel formulas — each channel receives TWO V contributions from
-    # the two bilinear pairs of H_int (γ-A and γ-B contractions in §5.4).
-    #
-    # For fixed (k, p), four V tensors are computed once:
-    #   Vd1 = Ṽ(k+q, p+q, p)       direct  term 1  [from (I-a)-γA]
-    #   Vd2 = Ṽ(p,   k,   k+q)     direct  term 2  [from (II-a)-γB]
-    #   Vx1 = Ṽ(k+q, k,   p)       exchange term 1  [from (II-a)-γA]
-    #   Vx2 = Ṽ(p,   p+q, k+q)     exchange term 2  [from (I-a)-γB]
-    #
-    # ── Direct channel ──
-    # K^d = -(1/N) [term1 + term2], where:
-    #
-    #   term1: Σ_{abcd} U*_an(k+q) U_bn'(p+q) U*_cn0'(p) U_dn0(k) Vd1[a,b,c,d]
-    #     Free indices (a,b) → projected by U†(k+q) and U(p+q)
-    #     Contracted (c,d): A_d1[a,b] = Σ_{cd} Vd1[a,b,c,d] conj(U_cn0'(p)) U_dn0(k)
-    #     Vd1_r = reshape(Vd1, norb², norb²)  → rows=(a,b), cols=(c,d)
-    #     kron_A = kron(U_n0_k, conj(U_n0p_p))  → index (c,d): U_n0_k[d]·conj(U_n0p_p[c])
-    #
-    #   term2: Σ_{abcd} U*_an0'(p) U_bn0(k) U*_cn(k+q) U_dn'(p+q) Vd2[a,b,c,d]
-    #     Free indices (c,d) → projected by U†(k+q) and U(p+q)
-    #     Contracted (a,b): A_d2[c,d] = Σ_{ab} Vd2[a,b,c,d] conj(U_an0'(p)) U_bn0(k)
-    #     Vd2_r = reshape(permutedims(Vd2,(3,4,1,2)), norb², norb²)  → rows=(c,d), cols=(a,b)
-    #     same kron_A but now contracted over (a,b): U_n0_k[b]·conj(U_n0p_p[a]) ✓
-    #
-    #   Both terms use the same kron vector, so: A_d = reshape((Vd1_r + Vd2_r) * kron_A, …)
-    #
-    # ── Exchange channel ──
-    # K^x = +(1/N) [term1 + term2], where:
-    #
-    #   term1: Σ_{abcd} U*_an(k+q) U_bn0(k) U*_cn0'(p) U_dn'(p+q) Vx1[a,b,c,d]
-    #     Free (a,d) → projected by U†(k+q) and U(p+q)
-    #     Contracted (b,c): A_x1[a,d] = Σ_{bc} Vx1[a,b,c,d] U_bn0(k) conj(U_cn0'(p))
-    #     Vx1_r = reshape(permutedims(Vx1,(1,4,2,3)), norb², norb²)  → rows=(a,d), cols=(b,c)
-    #     kron_B = kron(conj(U_n0p_p), U_n0_k)  → index (b,c): conj(U_n0p_p[c])·U_n0_k[b]
-    #
-    #   term2: Σ_{abcd} U*_an0'(p) U_bn'(p+q) U*_cn(k+q) U_dn0(k) Vx2[a,b,c,d]
-    #     Free (c,b) → projected by U†(k+q) [on c] and U(p+q) [on b]
-    #     Contracted (a,d): A_x2[c,b] = Σ_{ad} Vx2[a,b,c,d] conj(U_an0'(p)) U_dn0(k)
-    #     Vx2_r = reshape(permutedims(Vx2,(3,2,1,4)), norb², norb²)  → rows=(c,b), cols=(a,d)
-    #     kron_A = kron(U_n0_k, conj(U_n0p_p))  → index (a,d): U_n0_k[d]·conj(U_n0p_p[a])
-    #
-    #   The two exchange terms use different kron vectors, so they are computed
-    #   separately and added: A_x = A_x1 + A_x2.
-    #
-    # ── Final assembly ──
-    # H[rows_k, rows_p] += (1/Nk) U_kq' * (A_x - A_d) * U_pq
+    # Batch-compute off-mesh entries
+    if !isempty(off_mesh_ki)
+        off_mesh_kpts = [folded_targets[ki] for ki in off_mesh_ki]
+        bands_off, evecs_off = energy_bands(dofs, onebody, twobody,
+                                            kpoints_hf, G_k, off_mesh_kpts)
+        for (j, ki) in enumerate(off_mesh_ki)
+            cache_evals[:, ki]    = bands_off[:, j]
+            cache_evecs[:, :, ki] = evecs_off[:, :, j]
+        end
+    end
 
-    norb2 = norb^2
+    return EigenCache(cache_evals, cache_evecs,
+                      folded_targets, index_map)
+end
 
-    for k in 1:Nk_excit
-        kq   = kq_indices[k]
-        k_hf = excit_to_hf[k]
 
-        for p in 1:Nk_excit
-            pq   = kq_indices[p]
-            p_hf = excit_to_hf[p]
+# ──────────────────────────────────────────────────────────────────────────────
+# Particle-hole pair construction
+# ──────────────────────────────────────────────────────────────────────────────
 
-            # Four V tensor evaluations (one per γ contraction, §5.4)
-            Vd1_raw = V_k_full(kpoints[kq], kpoints[pq],   kpoints[p_hf])  # (k+q, p+q, p)
-            Vd2_raw = V_k_full(kpoints[p_hf], kpoints[k_hf], kpoints[kq]) # (p,   k,   k+q)
-            Vx1_raw = V_k_full(kpoints[kq], kpoints[k_hf], kpoints[p_hf]) # (k+q, k,   p)
-            Vx2_raw = V_k_full(kpoints[p_hf], kpoints[pq],  kpoints[kq])  # (p,   p+q, k+q)
+"""
+    _build_ph_pairs(evals_k, evals_kq, mu; tol_occ, n_list) -> Vector{Tuple{Int,Int,Int}}
 
-            # Reshape V tensors for matrix multiplication:
-            #   direct:   free indices (a,b) or (c,d), contracted = complement
-            #   exchange: free indices (a,d) or (c,b), contracted = complement
-            Vd1_r = reshape(Vd1_raw, norb2, norb2)                                # (a,b)×(c,d)
-            Vd2_r = reshape(permutedims(Vd2_raw, (3, 4, 1, 2)), norb2, norb2)     # (c,d)×(a,b)
-            Vx1_r = reshape(permutedims(Vx1_raw, (1, 4, 2, 3)), norb2, norb2)     # (a,d)×(b,c)
-            Vx2_r = reshape(permutedims(Vx2_raw, (3, 2, 1, 4)), norb2, norb2)     # (c,b)×(a,d)
+Build the list of valid particle-hole triples (ki, n0, n) for a given q.
+Occupation is determined automatically per k-point:
+  - n0 ∈ occ(k):     E^{n0}_k < mu
+  - n  ∈ unocc(k+q): E^n_{k+q} > mu  AND  n ∈ n_list (if provided)
+"""
+function _build_ph_pairs(
+    evals_k::AbstractMatrix,
+    evals_kq::AbstractMatrix,
+    mu::Real;
+    tol_occ::Real = 1e-8,
+    n_list::Union{Nothing, Vector{Int}} = nothing
+)
+    norb = size(evals_k, 1)
+    Nk   = size(evals_k, 2)
+    candidates = n_list === nothing ? (1:norb) : n_list
 
-            # Combined direct reshaped matrix (both terms use the same kron vector)
-            Vd_combined = Vd1_r + Vd2_r
+    triples = Tuple{Int,Int,Int}[]
+    for ki in 1:Nk
+        occ   = [n for n in 1:norb    if evals_k[n, ki]  < mu - tol_occ]
+        unocc = [n for n in candidates if evals_kq[n, ki] > mu + tol_occ]
+        for n0 in occ, n in unocc
+            push!(triples, (ki, n0, n))
+        end
+    end
+    return triples
+end
 
-            for j0 in 1:Nn0
-                slot_k  = (k - 1) * Nn0 + j0
-                rows_k  = row_idx[slot_k]
-                isempty(rows_k) && continue
 
-                n0      = n0_list[j0]
-                U_n0_k  = eigenvectors[:, n0, k_hf]
-                ns_k    = n_bands[slot_k]
-                U_kq_mat = eigenvectors[:, ns_k, kq]   # norb × |ns_k|
+# ──────────────────────────────────────────────────────────────────────────────
+# A matrix (TDA effective Hamiltonian)
+# ──────────────────────────────────────────────────────────────────────────────
 
-                for j0p in 1:Nn0
-                    slot_p  = (p - 1) * Nn0 + j0p
-                    rows_p  = row_idx[slot_p]
-                    isempty(rows_p) && continue
+"""
+    _build_A_matrix(V_k, evecs_k, evals_k, cache_kq,
+                    kpoints, q, triples, Nk) -> Matrix{ComplexF64}
 
-                    n0p      = n0_list[j0p]
-                    U_n0p_p  = eigenvectors[:, n0p, p_hf]
-                    ns_p     = n_bands[slot_p]
-                    U_pq_mat = eigenvectors[:, ns_p, pq]  # norb × |ns_p|
+Build the TDA effective Hamiltonian A(q), following §3 of particle_hole.md:
 
-                    # kron vectors for orbital-index contraction
-                    # kron_A[(c/a) + (d/b - 1)*norb] = U_n0_k[d/b] · conj(U_n0p_p[c/a])
-                    # kron_B[(b) + (c - 1)*norb]     = conj(U_n0p_p[c]) · U_n0_k[b]
-                    kron_A = kron(U_n0_k,        conj(U_n0p_p))
-                    kron_B = kron(conj(U_n0p_p), U_n0_k)
+    A^{n₀n, n₀'n'}_{kp}(q) = δ_{kp} δ_{n₀n₀'} δ_{nn'} (E^n_{k+q} - E^{n₀}_k)
+                              + Kd + Kx
 
-                    # Direct: A_d[free1, free2] where free = (a,b) from term1, (c,d) from term2
-                    # Both project onto particle bands via U_kq' * ... * U_pq
-                    A_d = reshape(Vd_combined * kron_A, norb, norb)
+Uses kron+reshape+BLAS for fast tensor contractions.
+"""
+function _build_A_matrix(
+    V_k,
+    evecs_k::AbstractArray{<:Number,3},
+    evals_k::AbstractMatrix,
+    cache_kq::EigenCache,
+    kpoints::Vector{Vector{Float64}},
+    q::Vector{Float64},
+    triples::Vector{Tuple{Int,Int,Int}},
+    Nk::Int
+)
+    M    = length(triples)
+    norb = size(evals_k, 1)
+    norb2 = norb * norb
+    A    = zeros(ComplexF64, M, M)
 
-                    # Exchange: two terms with different kron vectors
-                    A_x1 = reshape(Vx1_r * kron_B, norb, norb)   # free=(a,d)
-                    A_x2 = reshape(Vx2_r * kron_A, norb, norb)   # free=(c,b)
-                    A_x  = A_x1 + A_x2
+    # Diagonal: free particle-hole pair energy
+    for (I, (ki, n0, n)) in enumerate(triples)
+        A[I, I] = cache_kq.evals[n, ki] - evals_k[n0, ki]
+    end
 
-                    H[rows_k, rows_p] .+= (U_kq_mat' * (A_x - A_d) * U_pq_mat) ./ Nk_excit
+    # ── Build index lookup: group triples by (ki, n0) ──
+    # slot_key[ki][n0] -> (row_indices, n_bands)
+    slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
+    for (I, (ki, n0, n)) in enumerate(triples)
+        key = (ki, n0)
+        if !haskey(slot_key, key)
+            slot_key[key] = (Int[], Int[])
+        end
+        push!(slot_key[key][1], I)
+        push!(slot_key[key][2], n)
+    end
+
+    # Collect unique ki and n0 values per ki
+    ki_set = sort(unique(t[1] for t in triples))
+    n0_per_ki = Dict{Int, Vector{Int}}()
+    for ki in ki_set
+        n0_per_ki[ki] = sort(unique(t[2] for t in triples if t[1] == ki))
+    end
+
+    # ── Interaction kernel ──
+    invN = 1.0 / Nk
+    for ki in ki_set
+        kk  = kpoints[ki]
+        kkq = kk .+ q
+
+        Uk  = @view evecs_k[:, :, ki]
+        Ukq = @view cache_kq.evecs[:, :, ki]
+
+        for pi in ki_set
+            kp  = kpoints[pi]
+            kpq = kp .+ q
+
+            Up  = @view evecs_k[:, :, pi]
+            Upq = @view cache_kq.evecs[:, :, pi]
+
+            # ── Four V calls ──
+            Vd1_raw = V_k(kkq, kpq, kp)     # (k+q, p+q, p)
+            Vd2_raw = V_k(kp, kk, kkq)      # (p,   k,   k+q)
+            Vx1_raw = V_k(kkq, kk, kp)      # (k+q, k,   p)
+            Vx2_raw = V_k(kp, kpq, kkq)     # (p,   p+q, k+q)
+
+            # ── Reshape V for A kernel ──
+            Vd_A  = reshape(Vd1_raw, norb2, norb2) .+
+                     reshape(permutedims(Vd2_raw, (3,4,1,2)), norb2, norb2)
+            Vx1_A = reshape(permutedims(Vx1_raw, (1,4,2,3)), norb2, norb2)
+            Vx2_A = reshape(permutedims(Vx2_raw, (3,2,1,4)), norb2, norb2)
+
+            # ── Inner loops over hole bands ──
+            for n0 in get(n0_per_ki, ki, Int[])
+                key_k = (ki, n0)
+                haskey(slot_key, key_k) || continue
+                rows_k, ns_k = slot_key[key_k]
+
+                U_n0_k   = @view Uk[:, n0]
+                U_kq_mat = @view Ukq[:, ns_k]
+
+                for n0p in get(n0_per_ki, pi, Int[])
+                    key_p = (pi, n0p)
+                    haskey(slot_key, key_p) || continue
+                    rows_p, ns_p = slot_key[key_p]
+
+                    U_n0p_p  = @view Up[:, n0p]
+                    U_pq_mat = @view Upq[:, ns_p]
+
+                    conj_U_n0p_p = conj(U_n0p_p)
+                    kron_Ac = kron(U_n0_k,       conj_U_n0p_p)
+                    kron_Ax = kron(conj_U_n0p_p, U_n0_k)
+
+                    Ad = reshape(Vd_A  * kron_Ac, norb, norb)
+                    Ax = reshape(Vx1_A * kron_Ax, norb, norb) +
+                         reshape(Vx2_A * kron_Ac, norb, norb)
+
+                    A[rows_k, rows_p] .+= (U_kq_mat' * (Ax - Ad) * U_pq_mat) .* invN
                 end
             end
         end
     end
 
-    return H, triples
+    return A
 end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# B matrix (RPA coupling)
+# ──────────────────────────────────────────────────────────────────────────────
+
+"""
+    _build_B_matrix(V_k, evecs_k, cache_kq, cache_kmq,
+                    kpoints, q, triples, Nk) -> Matrix{ComplexF64}
+
+Build the RPA coupling matrix B(q), following §3.5 of particle_hole2.md:
+
+    B^{n₀n, n₀'n'}_{kp}(q) = Bd + Bx
+
+Uses eigensystems at k+q (from `cache_kq`) and p-q (from `cache_kmq`).
+Uses kron+reshape+BLAS for fast tensor contractions.
+"""
+function _build_B_matrix(
+    V_k,
+    evecs_k::AbstractArray{<:Number,3},
+    cache_kq::EigenCache,
+    cache_kmq::EigenCache,
+    kpoints::Vector{Vector{Float64}},
+    q::Vector{Float64},
+    triples::Vector{Tuple{Int,Int,Int}},
+    Nk::Int
+)
+    M    = length(triples)
+    norb = size(evecs_k, 1)
+    norb2 = norb * norb
+    B    = zeros(ComplexF64, M, M)
+
+    # ── Build index lookup: group triples by (ki, n0) ──
+    slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
+    for (I, (ki, n0, n)) in enumerate(triples)
+        key = (ki, n0)
+        if !haskey(slot_key, key)
+            slot_key[key] = (Int[], Int[])
+        end
+        push!(slot_key[key][1], I)
+        push!(slot_key[key][2], n)
+    end
+
+    ki_set = sort(unique(t[1] for t in triples))
+    n0_per_ki = Dict{Int, Vector{Int}}()
+    for ki in ki_set
+        n0_per_ki[ki] = sort(unique(t[2] for t in triples if t[1] == ki))
+    end
+
+    # ── Interaction kernel ──
+    invN = 1.0 / Nk
+    for ki in ki_set
+        kk  = kpoints[ki]
+        kkq = kk .+ q
+
+        Uk   = @view evecs_k[:, :, ki]
+        Ukq  = @view cache_kq.evecs[:, :, ki]
+
+        for pi in ki_set
+            kp   = kpoints[pi]
+            kpmq = kp .- q
+
+            Up   = @view evecs_k[:, :, pi]
+            Upmq = @view cache_kmq.evecs[:, :, pi]
+
+            # ── Four V calls for B ──
+            Vd1_raw = V_k(kpmq, kk, kkq)     # (p-q, k,   k+q)
+            Vd2_raw = V_k(kkq, kp, kpmq)     # (k+q, p,   p-q)
+            Vx1_raw = V_k(kpmq, kp, kkq)     # (p-q, p,   k+q)
+            Vx2_raw = V_k(kkq, kk, kpmq)     # (k+q, k,   p-q)
+
+            # ── Reshape V for B kernel ──
+            # Bd1: V[a,b,c,d] with n↔c, n'↔a, n0↔b, n0'↔d → perm (3,1,2,4)
+            # Bd2: V[a,b,c,d] with n↔a, n'↔c, n0'↔b, n0↔d → perm (1,3,2,4)
+            # Bx1: V[a,b,c,d] with n↔c, n'↔a, n0'↔b, n0↔d → perm (3,1,2,4)
+            # Bx2: V[a,b,c,d] with n↔a, n'↔c, n0↔b, n0'↔d → perm (1,3,2,4)
+            Vd1_B = reshape(permutedims(Vd1_raw, (3,1,2,4)), norb2, norb2)
+            Vd2_B = reshape(permutedims(Vd2_raw, (1,3,2,4)), norb2, norb2)
+            Vx1_B = reshape(permutedims(Vx1_raw, (3,1,2,4)), norb2, norb2)
+            Vx2_B = reshape(permutedims(Vx2_raw, (1,3,2,4)), norb2, norb2)
+
+            # ── Inner loops over hole bands ──
+            for n0 in get(n0_per_ki, ki, Int[])
+                key_k = (ki, n0)
+                haskey(slot_key, key_k) || continue
+                rows_k, ns_k = slot_key[key_k]
+
+                U_n0_k   = @view Uk[:, n0]
+                U_kq_mat = @view Ukq[:, ns_k]
+
+                for n0p in get(n0_per_ki, pi, Int[])
+                    key_p = (pi, n0p)
+                    haskey(slot_key, key_p) || continue
+                    rows_p, ns_p = slot_key[key_p]
+
+                    U_n0p_p   = @view Up[:, n0p]
+                    U_pmq_mat = @view Upmq[:, ns_p]
+
+                    # kron vectors for hole contractions
+                    # Bd1, Bx2: n0↔b, n0'↔d → kron(U_n0_k, U_n0p_p)
+                    # Bd2, Bx1: n0'↔b, n0↔d → kron(U_n0p_p, U_n0_k)
+                    kron_B1 = kron(U_n0_k,  U_n0p_p)
+                    kron_B2 = kron(U_n0p_p, U_n0_k)
+
+                    Bd = reshape(Vd1_B * kron_B1, norb, norb) +
+                         reshape(Vd2_B * kron_B2, norb, norb)
+                    Bx = reshape(Vx1_B * kron_B2, norb, norb) +
+                         reshape(Vx2_B * kron_B1, norb, norb)
+
+                    # Project: left = U*(k+q), right = U*(p-q)
+                    B[rows_k, rows_p] .+= (U_kq_mat' * (Bx - Bd) * conj(U_pmq_mat)) .* invN
+                end
+            end
+        end
+    end
+
+    return B
+end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# D matrix (RPA backward-backward block)
+# ──────────────────────────────────────────────────────────────────────────────
+
+"""
+    _build_D_matrix(V_k, evecs_k, evals_k, cache_kmq,
+                    kpoints, q, triples, mu, Nk) -> Matrix{ComplexF64}
+
+Build the RPA backward-backward matrix D(q), following §5.5–5.6 of
+particle_hole2.md:
+
+    D^{n₀n, n₀'n'}_{kp}(q) = δ_{kp} δ_{n₀n₀'} δ_{nn'} (E^{n₀}_k - E^n_{k-q})
+                              + θ_n(k-q) θ_{n'}(p-q) × (Dd + Dx)
+
+where θ_n(k-q) = 1 if n ∈ unocc(k-q), 0 otherwise.
+
+Uses eigensystems at k-q (from `cache_kmq`).  Note the opposite sign structure
+compared to A: direct +1/N, exchange -1/N.
+Uses kron+reshape+BLAS for fast tensor contractions.
+"""
+function _build_D_matrix(
+    V_k,
+    evecs_k::AbstractArray{<:Number,3},
+    evals_k::AbstractMatrix,
+    cache_kmq::EigenCache,
+    kpoints::Vector{Vector{Float64}},
+    q::Vector{Float64},
+    triples::Vector{Tuple{Int,Int,Int}},
+    mu::Real,
+    Nk::Int;
+    tol_occ::Real = 1e-8
+)
+    M    = length(triples)
+    norb = size(evals_k, 1)
+    norb2 = norb * norb
+    D    = zeros(ComplexF64, M, M)
+
+    # Diagonal: E^{n₀}_k - E^n_{k-q}
+    for (I, (ki, n0, n)) in enumerate(triples)
+        D[I, I] = evals_k[n0, ki] - cache_kmq.evals[n, ki]
+    end
+
+    # ── Build index lookup: group triples by (ki, n0) ──
+    slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
+    for (I, (ki, n0, n)) in enumerate(triples)
+        key = (ki, n0)
+        if !haskey(slot_key, key)
+            slot_key[key] = (Int[], Int[])
+        end
+        push!(slot_key[key][1], I)
+        push!(slot_key[key][2], n)
+    end
+
+    ki_set = sort(unique(t[1] for t in triples))
+    n0_per_ki = Dict{Int, Vector{Int}}()
+    for ki in ki_set
+        n0_per_ki[ki] = sort(unique(t[2] for t in triples if t[1] == ki))
+    end
+
+    # ── Interaction kernel ──
+    invN = 1.0 / Nk
+    for ki in ki_set
+        kk   = kpoints[ki]
+        kkmq = kk .- q
+
+        Uk   = @view evecs_k[:, :, ki]
+        Ukmq = @view cache_kmq.evecs[:, :, ki]
+
+        for pi in ki_set
+            kp   = kpoints[pi]
+            kpmq = kp .- q
+
+            Up   = @view evecs_k[:, :, pi]
+            Upmq = @view cache_kmq.evecs[:, :, pi]
+
+            # ── Four V calls for D ──
+            Vd1_raw = V_k(kpmq, kkmq, kk)    # (p-q, k-q, k)
+            Vd2_raw = V_k(kk, kp, kpmq)      # (k,   p,   p-q)
+            Vx1_raw = V_k(kpmq, kp, kk)      # (p-q, p,   k)
+            Vx2_raw = V_k(kk, kkmq, kpmq)    # (k,   k-q, p-q)
+
+            # ── Reshape V for D kernel ──
+            # Dd1: rows=(b,a) particle, cols=(c,d) hole → perm (2,1,3,4)
+            # Dd2: rows=(d,c) particle, cols=(a,b) hole → perm (4,3,1,2)
+            # Dx1: rows=(d,a) particle, cols=(b,c) hole → perm (4,1,2,3)
+            # Dx2: rows=(b,c) particle, cols=(a,d) hole → perm (2,3,1,4)
+            Vd1_D = reshape(permutedims(Vd1_raw, (2,1,3,4)), norb2, norb2)
+            Vd2_D = reshape(permutedims(Vd2_raw, (4,3,1,2)), norb2, norb2)
+            Vx1_D = reshape(permutedims(Vx1_raw, (4,1,2,3)), norb2, norb2)
+            Vx2_D = reshape(permutedims(Vx2_raw, (2,3,1,4)), norb2, norb2)
+
+            # ── Inner loops over hole bands ──
+            for n0 in get(n0_per_ki, ki, Int[])
+                key_k = (ki, n0)
+                haskey(slot_key, key_k) || continue
+                rows_k, ns_k = slot_key[key_k]
+
+                # Occupation factor θ_n(k-q) for each n in ns_k
+                theta_k = [cache_kmq.evals[n, ki] > mu + tol_occ ? 1.0 : 0.0 for n in ns_k]
+                all(theta_k .== 0.0) && continue
+
+                U_n0_k    = @view Uk[:, n0]
+                U_kmq_mat = @view Ukmq[:, ns_k]
+
+                for n0p in get(n0_per_ki, pi, Int[])
+                    key_p = (pi, n0p)
+                    haskey(slot_key, key_p) || continue
+                    rows_p, ns_p = slot_key[key_p]
+
+                    # Occupation factor θ_{n'}(p-q) for each n' in ns_p
+                    theta_p = [cache_kmq.evals[n, pi] > mu + tol_occ ? 1.0 : 0.0 for n in ns_p]
+                    all(theta_p .== 0.0) && continue
+
+                    U_n0p_p   = @view Up[:, n0p]
+                    U_pmq_mat = @view Upmq[:, ns_p]
+
+                    # kron vectors for hole contractions
+                    # Dd1, Dd2, Dx2: kron(conj(U_n0_k), U_n0p_p)
+                    # Dx1:           kron(U_n0p_p, conj(U_n0_k))
+                    conj_U_n0_k = conj(U_n0_k)
+                    kron_Dc1 = kron(conj_U_n0_k, U_n0p_p)
+                    kron_Dc2 = kron(U_n0p_p, conj_U_n0_k)
+
+                    Dd = reshape(Vd1_D * kron_Dc1, norb, norb) +
+                         reshape(Vd2_D * kron_Dc1, norb, norb)
+                    Dx = reshape(Vx1_D * kron_Dc2, norb, norb) +
+                         reshape(Vx2_D * kron_Dc1, norb, norb)
+
+                    # Project: left = U*(k-q), right = U*(p-q)
+                    # D has opposite sign: +(direct) -(exchange)
+                    block = (U_kmq_mat' * (Dd - Dx) * conj(U_pmq_mat)) .* invN
+
+                    # Apply occupation factors θ_n(k-q) and θ_{n'}(p-q)
+                    block .*= theta_k       # multiply rows
+                    block .*= theta_p'      # multiply columns
+
+                    D[rows_k, rows_p] .+= block
+                end
+            end
+        end
+    end
+
+    return D
+end
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    solve_ph_excitations(dofs, twobody, hf_result, qpoints, reciprocal_vecs;
-                         excit_kpoints=nothing, n0_list=nothing, n_list=nothing,
+    solve_ph_excitations(dofs, onebody, twobody, hf_result, qpoints,
+                         reciprocal_vecs; solver=:TDA, n_list=nothing,
                          verbose=true) -> NamedTuple
 
-Compute the **particle-hole** excitation spectrum (TDA / Bethe-Salpeter) on top
-of a converged Hartree-Fock ground state.
+Compute the particle-hole excitation spectrum along a q-path.
 
-For each excitation momentum q ∈ `qpoints`, builds the unified effective
-Hamiltonian H_eff(q) with composite index `(k, j0, n)` over all hole bands
-`n0_list` simultaneously, then diagonalizes it.
+Shifted momenta (k+q, p-q, …) are folded into the first BZ.  If the folded
+point falls on the HF k-mesh, its eigensystem is reused; otherwise it is
+recomputed on the fly via `energy_bands`.
 
-# Arguments
-- `dofs::SystemDofs`: internal DOFs of one magnetic unit cell.
-- `twobody`: two-body interaction terms; needs `.ops` and `.irvec`.
-- `hf_result`: NamedTuple returned by `solve_hfk`.  Fields used:
-  `eigenvalues` (d×Nk_hf), `eigenvectors` (d×d×Nk_hf), `kpoints`, `mu`.
-- `qpoints::Vector{Vector{Float64}}`: excitation momenta to compute.
-- `reciprocal_vecs::Vector{Vector{Float64}}`: reciprocal lattice vectors b_i.
+Particle-hole pairs are auto-detected per k-point from eigenvalues vs mu.
 
-# Keyword Arguments
-- `excit_kpoints`: coarser k-grid for the particle-hole sum.  `nothing` uses
-  the full HF k-grid.
-- `n0_list`: hole band indices.  `nothing` = all bands occupied at any excit k.
-- `n_list`: particle band indices.  `nothing` = all bands (occupancy filter applied).
-- `verbose::Bool = true`: print progress information.
+# Keyword `n_list`
+Optional vector of band indices allowed as particle (unoccupied) states.
+Default `nothing` means all bands are candidates.  Use e.g. `n_list=[1,2]`
+to restrict the particle-hole space to low-energy bands only.
 
-# Returns
-NamedTuple with fields:
-- `qpoints`: the input q-points (echoed).
-- `n0_list::Vector{Int}`: the hole bands actually used.
-- `n_list::Vector{Int}`: the particle bands actually used.
-- `energies::Vector{Vector{Float64}}`: `energies[qi]` is the sorted vector of
-  eigenvalues ε_μ(q) for q-point index qi (all n0 channels unified).
-- `wavefunctions::Vector{Matrix{ComplexF64}}`: `wavefunctions[qi]` is the
-  eigenvector matrix; column μ is the envelope function ψ(μ) with composite
-  index `(k, j0, n)`.
-- `triples::Vector{Vector{Tuple{Int,Int,Int}}}`: `triples[qi]` lists the
-  `(k, j0, n)` triples for each row/column of `wavefunctions[qi]`.
+# Keyword `solver`
+- `:TDA` (default): Tamm-Dancoff (Hermitian, M×M). Builds only A.
+- `:RPA`: Full RPA. Builds A, B, and D, then solves the 2M×2M eigenvalue
+  problem:  (A  B; -B†  D)(X; Y) = ε(X; Y).
+  The D block uses D(q) = -A(-q)* when the ±q occupation spaces match,
+  otherwise it is computed directly with the residual occupation factor.
 """
 function solve_ph_excitations(
     dofs::SystemDofs,
+    onebody,
     twobody,
     hf_result::NamedTuple,
     qpoints::Vector{Vector{Float64}},
     reciprocal_vecs::Vector{Vector{Float64}};
-    excit_kpoints::Union{Nothing, Vector{Vector{Float64}}} = nothing,
-    n0_list::Union{Nothing, Vector{Int}} = nothing,
-    n_list::Union{Nothing, Vector{Int}}  = nothing,
-    verbose::Bool = true
+    solver::Symbol = :TDA,
+    n_list::Union{Nothing, Vector{Int}} = nothing,
+    verbose::Bool  = true
 )
-    eigenvalues  = hf_result.eigenvalues   # (norb, Nk_hf)
-    eigenvectors = hf_result.eigenvectors  # (norb, norb, Nk_hf)
-    kpoints_hf   = hf_result.kpoints       # Vector{Vector{Float64}}, length Nk_hf
+    solver in (:TDA, :RPA) || error("solver must be :TDA or :RPA, got :$solver")
+
+    evals_hf     = hf_result.eigenvalues
+    evecs_hf     = hf_result.eigenvectors
+    kpoints_hf   = hf_result.kpoints
+    G_k          = hf_result.G_k
     mu           = hf_result.mu
+    Nk           = length(kpoints_hf)
+    tol_occ      = 1e-8
 
-    norb    = size(eigenvalues, 1)
-    tol_occ = 1e-8
+    # Reciprocal-space geometry (pinv handles D_lat < D_embed, e.g. 1D chain in 2D space)
+    B_mat = hcat(reciprocal_vecs...)
+    B_inv = pinv(B_mat)
 
-    # ── Detect active dimensions in HF k-point grid ───────────────────────────
-    D_hf  = length(kpoints_hf[1])
-    Nk_hf = length(kpoints_hf)
-    active_dims = [d for d in 1:D_hf if any(abs(k[d]) > 1e-12 for k in kpoints_hf)]
-    n_active    = length(active_dims)
+    # Precompute folded HF k-points for mesh-hit detection
+    kpoints_folded = [_fold_to_BZ(k, B_inv, B_mat) for k in kpoints_hf]
 
-    length(reciprocal_vecs) == n_active ||
-        error("reciprocal_vecs must have $n_active vector(s) for this k-point grid " *
-              "(detected $n_active active dimension(s) in hf.kpoints), " *
-              "got $(length(reciprocal_vecs))")
+    # Build the interaction kernel in momentum space
+    V_r = build_Vr(dofs, twobody.ops, twobody.irvec)
+    V_k = build_Vk(V_r)
 
-    # active_k: project any k-vector (D_hf-dim or n_active-dim) onto active subspace
-    function active_k(k::AbstractVector)
-        length(k) == n_active && return collect(Float64, k)
-        length(k) == D_hf     && return Float64[k[d] for d in active_dims]
-        error("k length $(length(k)) incompatible: expected $n_active or $D_hf")
-    end
-
-    # B_inv in active subspace (n_active × n_active)
-    rv_active = [active_k(b) for b in reciprocal_vecs]
-    B_inv     = inv(hcat(rv_active...))
-
-    # Infer per-dimension grid sizes from fractional coordinates in active subspace
-    Ns_hf = let frac_sets = [Set{Int}() for _ in 1:n_active]
-        for k in kpoints_hf
-            f = B_inv * active_k(k)
-            for d in 1:n_active
-                push!(frac_sets[d], round(Int, f[d] * Nk_hf))
-            end
-        end
-        [length(s) for s in frac_sets]
-    end
-    @assert prod(Ns_hf) == Nk_hf "HF k-grid size mismatch: inferred $(Ns_hf) but got $Nk_hf points"
-
-    # ── Excit sub-grid (defaults to full HF grid) ─────────────────────────────
-    if excit_kpoints === nothing
-        kpoints_excit = kpoints_hf
-        excit_to_hf   = collect(1:Nk_hf)
-    else
-        kpoints_excit = excit_kpoints
-        excit_to_hf   = [_kindex_analytic(active_k(k), B_inv, Ns_hf) for k in kpoints_excit]
-    end
-    Nk_excit = length(kpoints_excit)
-
-    # ── Occupied / unoccupied band masks (on full HF grid) ───────────────────
-    occ = Matrix{Bool}(eigenvalues .<= mu + tol_occ)   # (norb, Nk_hf)
-
-    # ── Resolve hole bands: occupied at any excit k-point ────────────────────
-    if n0_list === nothing
-        n0_list = [n for n in 1:norb if any(occ[n, excit_to_hf])]
-    end
-    isempty(n0_list) && error("solve_ph_excitations: no occupied bands found")
-
-    # ── Resolve particle bands ────────────────────────────────────────────────
-    if n_list === nothing
-        n_list = collect(1:norb)
-    end
-
-    # ── Build full interaction kernel ─────────────────────────────────────────
-    V_k_full = build_Vk(build_Vr(dofs, twobody.ops, twobody.irvec))
-
-    # ── Output arrays ─────────────────────────────────────────────────────────
-    Nq            = length(qpoints)
+    Nq = length(qpoints)
     energies      = Vector{Vector{Float64}}(undef, Nq)
     wavefunctions = Vector{Matrix{ComplexF64}}(undef, Nq)
     triples_out   = Vector{Vector{Tuple{Int,Int,Int}}}(undef, Nq)
 
-    # ── Main loop: parallel over q-points ────────────────────────────────────
-    print_lock = verbose ? ReentrantLock() : nothing
-    Threads.@threads for qi in 1:Nq
-        q = qpoints[qi]
-        if verbose
-            lock(print_lock) do
-                println("q-point $qi / $Nq : q = $q")
+    verbose && println("  Solving $Nq q-points ($solver) with $(Threads.nthreads()) thread(s)...")
+    log_lock = ReentrantLock()
+
+    Threads.@threads for iq in 1:Nq
+        q = qpoints[iq]
+
+        # Build eigensystem cache for k+q shift
+        cache_kq = _build_eigen_cache(q, kpoints_hf, kpoints_folded,
+                                      B_inv, B_mat, evals_hf, evecs_hf,
+                                      dofs, onebody, twobody, G_k)
+
+        # Build particle-hole pairs (occupation auto-detected per k-point)
+        triples = _build_ph_pairs(evals_hf, cache_kq.evals, mu;
+                                  tol_occ=tol_occ, n_list=n_list)
+        M = length(triples)
+        triples_out[iq] = triples
+
+        if M == 0
+            energies[iq]      = Float64[]
+            wavefunctions[iq] = zeros(ComplexF64, 0, 0)
+            verbose && lock(log_lock) do
+                @printf("  q[%d/%d] = [%s] ... M=0, skip\n",
+                    iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "))
             end
+            continue
         end
 
-        # kq_indices[k]: HF index of (excit_k + q), projected onto active subspace
-        kq_indices = [_kindex_analytic(active_k(kpoints_excit[k]) .+ active_k(q), B_inv, Ns_hf)
-                      for k in 1:Nk_excit]
+        # Build the A matrix (TDA effective Hamiltonian)
+        A = _build_A_matrix(V_k, evecs_hf, evals_hf, cache_kq,
+                            kpoints_hf, q, triples, Nk)
 
-        H, triples = _build_heff_ph_excitation(
-            n0_list, n_list, occ, kpoints_hf, eigenvalues, eigenvectors,
-            kq_indices, V_k_full; excit_to_hf = excit_to_hf
-        )
-        F = eigen(Hermitian(H))
-        energies[qi]      = F.values
-        wavefunctions[qi] = F.vectors
-        triples_out[qi]   = triples
+        if solver == :TDA
+            F = eigen(Hermitian(A))
+            energies[iq]      = F.values
+            wavefunctions[iq] = F.vectors
+            verbose && lock(log_lock) do
+                @printf("  q[%d/%d] = [%s] ... M=%d, done (TDA)\n",
+                    iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), M)
+            end
+
+        elseif solver == :RPA
+            # Build eigensystem cache for k-q shift (needed by B and D)
+            mq = -q
+            cache_kmq = _build_eigen_cache(mq, kpoints_hf, kpoints_folded,
+                                           B_inv, B_mat, evals_hf, evecs_hf,
+                                           dofs, onebody, twobody, G_k)
+
+            # Build B(q): needs cache_kq (k+q) and cache_kmq (p-q)
+            B_q = _build_B_matrix(V_k, evecs_hf, cache_kq, cache_kmq,
+                                  kpoints_hf, q, triples, Nk)
+
+            # Check if +q and -q triples match (for D shortcut)
+            triples_mq = _build_ph_pairs(evals_hf, cache_kmq.evals, mu;
+                                         tol_occ=tol_occ, n_list=n_list)
+            same_pairs = (triples == triples_mq)
+            d_method = ""
+
+            if same_pairs
+                # D(q) = -A(-q)* — build A at -q and negate-conjugate
+                A_mq = _build_A_matrix(V_k, evecs_hf, evals_hf, cache_kmq,
+                                       kpoints_hf, mq, triples, Nk)
+                D_q = -conj.(A_mq)
+                d_method = "D=-A(-q)*"
+            else
+                # Compute D(q) directly with occupation factor
+                D_q = _build_D_matrix(V_k, evecs_hf, evals_hf, cache_kmq,
+                                      kpoints_hf, q, triples, mu, Nk;
+                                      tol_occ=tol_occ)
+                d_method = "D=direct"
+            end
+
+            # ── Bosonic BdG Cholesky method (Shindou et al. PRB 87, 174427, 2013) ──
+            cholesky_ok = false
+            eta = 1e-10
+            M_herm = zeros(ComplexF64, 2M, 2M)
+            M_herm[1:M,     1:M]     .=  A
+            M_herm[1:M,     M+1:2M]  .=  B_q
+            M_herm[M+1:2M,  1:M]     .=  B_q'
+            M_herm[M+1:2M,  M+1:2M]  .= -D_q
+            M_herm .= 0.5 .* (M_herm .+ M_herm')
+            for i in 1:2M; M_herm[i, i] += eta; end
+
+            try
+                K = cholesky(Hermitian(M_herm)).U
+                sigma3 = Diagonal([fill(1.0, M); fill(-1.0, M)])
+                W = K * sigma3 * K'
+                W = Hermitian(0.5 .* (W .+ W'))
+                F_W = eigen(W)
+
+                pos_idx = findall(v -> v > 0, F_W.values)
+                perm    = pos_idx[sortperm(F_W.values[pos_idx])]
+                energies[iq]      = F_W.values[perm]
+                wavefunctions[iq] = F_W.vectors[:, perm]
+                cholesky_ok = true
+                verbose && lock(log_lock) do
+                    @printf("  q[%d/%d] = [%s] ... %s, M=%d, done (RPA/BdG-Cholesky)\n",
+                        iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), d_method, M)
+                end
+            catch e
+                if !isa(e, PosDefException)
+                    rethrow(e)
+                end
+            end
+
+            # ── Fallback: direct 2M×2M non-Hermitian diagonalization ──
+            if !cholesky_ok
+                RPA_mat = zeros(ComplexF64, 2M, 2M)
+                RPA_mat[1:M,     1:M]     .=  A
+                RPA_mat[1:M,     M+1:2M]  .=  B_q
+                RPA_mat[M+1:2M,  1:M]     .= -B_q'
+                RPA_mat[M+1:2M,  M+1:2M]  .=  D_q
+
+                F_full = eigen(RPA_mat)
+                all_evals = F_full.values
+                max_imag  = maximum(abs.(imag.(all_evals)))
+                pos_idx   = findall(v -> real(v) > 0, all_evals)
+                perm      = pos_idx[sortperm(real.(all_evals[pos_idx]))]
+                energies[iq]      = real.(all_evals[perm])
+                wavefunctions[iq] = F_full.vectors[:, perm]
+                verbose && lock(log_lock) do
+                    @printf("  q[%d/%d] = [%s] ... %s, M=%d, done (RPA/direct 2M, max|imag|=%.2e, %d pos modes)\n",
+                        iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), d_method,
+                        M, max_imag, length(perm))
+                end
+            end
+        end
     end
 
     return (
         qpoints       = qpoints,
-        n0_list       = n0_list,
-        n_list        = n_list,
         energies      = energies,
         wavefunctions = wavefunctions,
         triples       = triples_out,
+        solver        = solver,
     )
 end

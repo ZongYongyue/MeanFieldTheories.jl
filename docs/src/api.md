@@ -115,6 +115,14 @@ See [Visualization](@ref) for detailed usage and examples.
 
 ---
 
+## Excitations
+
+```@docs
+solve_ph_excitations
+```
+
+---
+
 ## Utilities
 
 ```@docs
