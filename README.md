@@ -6,17 +6,6 @@
 
 See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl/dev
 
-## Features
-
-- **Fully customizable quantum system** Degrees of freedom (site, sublattice, spin, orbital, valley, …) are freely defined by the user via `SystemDofs`, with user-specified constraints.
-
--  **High flexibility for generating operator representations** DOF index constraints can be applied directly to `generate_onebody` and `generate_twobody` to select only the desired terms on each bond. 
-
--  **Highly free forms of interaction** Two-body interaction allows four different site index $(i,j,k,l)$. The creation-annihilation ordering of the operator string is also arbitrary and handled automatically.
-
-- **Unrestricted Hartree-Fock in both real and momentum space.** All four Wick contraction channels (Hartree and Fock, both pairs) are kept open with no preset symmetry breaking.
-
-- **Complete post-HF excitation spectrum.** On top of the mean-field ground state, collective modes are accessible using BSE/TDA and RPA, yielding dynamic structure factors and excitation gaps directly.
 
 ## Installation
 
@@ -127,7 +116,7 @@ If you use this package in your research, please cite:
 ```bibtex
 @software{meanfieldtheories,
   author = {Yong-Yue Zong},
-  title = {MeanFieldTheories.jl: A Julia package for quantum many-body systems using mean-field theory and related methods},
+  title = {MeanFieldTheories.jl: A Julia package for quantum many-body systems using mean-field methods},
   year = {2026},
   url = {https://github.com/Quantum-Many-Body/MeanFieldTheories.jl}
 }
