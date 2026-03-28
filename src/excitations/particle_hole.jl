@@ -573,7 +573,7 @@ end
 """
     solve_ph_excitations(dofs, onebody, twobody, hf_result, qpoints,
                          reciprocal_vecs; solver=:TDA, n_list=nothing,
-                         verbose=true) -> NamedTuple
+                         eta=1e-10, verbose=true) -> NamedTuple
 
 Compute the particle-hole excitation spectrum along a q-path.
 
@@ -587,6 +587,11 @@ Particle-hole pairs are auto-detected per k-point from eigenvalues vs mu.
 Optional vector of band indices allowed as particle (unoccupied) states.
 Default `nothing` means all bands are candidates.  Use e.g. `n_list=[1,2]`
 to restrict the particle-hole space to low-energy bands only.
+
+# Keyword `eta`
+Regularization added to the diagonal of the Bosonic BdG matrix before
+Cholesky decomposition (RPA only).  Default `1e-10`.  Increase (e.g. `1e-6`)
+for systems where the matrix is nearly singular near Goldstone modes.
 
 # Keyword `solver`
 - `:TDA` (default): Tamm-Dancoff (Hermitian, M×M). Builds only A.
@@ -604,6 +609,7 @@ function solve_ph_excitations(
     reciprocal_vecs::Vector{Vector{Float64}};
     solver::Symbol = :TDA,
     n_list::Union{Nothing, Vector{Int}} = nothing,
+    eta::Float64   = 1e-10,
     verbose::Bool  = true
 )
     solver in (:TDA, :RPA) || error("solver must be :TDA or :RPA, got :$solver")
@@ -705,7 +711,6 @@ function solve_ph_excitations(
 
             # ── Bosonic BdG Cholesky method (Shindou et al. PRB 87, 174427, 2013) ──
             cholesky_ok = false
-            eta = 1e-10
             M_herm = zeros(ComplexF64, 2M, 2M)
             M_herm[1:M,     1:M]     .=  A
             M_herm[1:M,     M+1:2M]  .=  B_q
