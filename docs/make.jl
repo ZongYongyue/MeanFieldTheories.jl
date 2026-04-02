@@ -33,6 +33,7 @@ makedocs(;
             "Finite-T AFM on Cubic Lattice" => "Cubic_AFM.md",
             "Kane-Mele-Hubbard Model"       => "KMH.md",
             "AFM Magnon Dispersion"         => "AFM_Magnon.md",
+            "t-U-J-J' Magnon Dispersion"    => "Heisenberg.md",
             "Tasaki Flat-Band Ferromagnet"   => "Tasaki.md",
         ],
         "API Reference" => "api.md",
