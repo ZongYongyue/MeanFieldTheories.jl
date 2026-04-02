@@ -193,12 +193,50 @@ end
     _build_A_matrix(V_k, evecs_k, evals_k, cache_kq,
                     kpoints, q, triples, Nk) -> Matrix{ComplexF64}
 
-Build the TDA effective Hamiltonian A(q), following §3 of particle_hole.md:
+Build the TDA effective Hamiltonian A(q), following §3.7 of particle_hole.md:
 
-    A^{n₀n, n₀'n'}_{kp}(q) = δ_{kp} δ_{n₀n₀'} δ_{nn'} (E^n_{k+q} - E^{n₀}_k)
-                              + Kd + Kx
+    A^{n₀n, n₀'n'}_{kp}(q) = δ_{kp} δ_{n₀n₀'} δ_{nn'} (Eⁿ_{k+q} - E^{n₀}_k)
+                              + (1/N)(Kx - Kd)
 
-Uses kron+reshape+BLAS for fast tensor contractions.
+where the interaction kernels in the orbital basis are (particle_hole.md §3.7):
+
+Direct (-1/N):
+  Kd = Σ_{abcd} [
+      U*_{a,n}(k+q) U_{b,n'}(p+q) U*_{c,n₀'}(p) U_{d,n₀}(k)  Ṽ^{abcd}(k+q, p+q, p)
+    + U*_{a,n₀'}(p) U_{b,n₀}(k)  U*_{c,n}(k+q)  U_{d,n'}(p+q) Ṽ^{abcd}(p, k, k+q)
+  ]
+
+Exchange (+1/N):
+  Kx = Σ_{abcd} [
+      U*_{a,n}(k+q) U_{b,n₀}(k) U*_{c,n₀'}(p) U_{d,n'}(p+q) Ṽ^{abcd}(k+q, k, p)
+    + U*_{a,n₀'}(p) U_{b,n'}(p+q) U*_{c,n}(k+q) U_{d,n₀}(k)  Ṽ^{abcd}(p, p+q, k+q)
+  ]
+
+## Tensor contraction strategy (two-step)
+
+Each kernel term is  Σ_{abcd} U*_n(k+q) · U_n'(p+q) · U*_n₀'(p) · U_n₀(k) · V^{abcd}.
+We split into hole contraction (kron) + particle contraction (BLAS gemm):
+
+Step 1 — hole contraction (fixed n₀, n₀'):
+  For each V term, permutedims arranges V^{abcd} → M[rows=(n,n'), cols=(n₀',n₀)]
+  where rows/cols refer to the band-index roles, not literal band numbers.
+  Then:  result = V_matrix * kron_hole   →  reshape to (norb, norb)
+  where kron_hole = kron(U_{n₀}(k), U*_{n₀'}(p)), with n₀' fast, n₀ slow.
+
+Step 2 — particle contraction (batch over all n, n'):
+  A[rows_k, rows_p] += U†(k+q) * result * U(p+q) / N
+
+All four V terms share the same kron vector (unified column ordering), so
+they are summed into a single matrix V_A = Vx1 + Vx2 - Vd1 - Vd2, requiring
+only one gemv per (n₀, n₀') pair.
+
+## Julia memory layout conventions
+
+reshape(V[a,b,c,d], n², n²) → M[r,c] with r = a+(b-1)n, c = c+(d-1)n
+  (dim1 varies fastest = column-major)
+
+kron(x, y)[(i-1)n + j] = x[i] · y[j]
+  (second argument y varies fastest)
 """
 function _build_A_matrix(
     V_k,
@@ -215,13 +253,12 @@ function _build_A_matrix(
     norb2 = norb * norb
     A    = zeros(ComplexF64, M, M)
 
-    # Diagonal: free particle-hole pair energy
+    # ── Diagonal: mean-field particle-hole energy ──
     for (I, (ki, n0, n)) in enumerate(triples)
         A[I, I] = cache_kq.evals[n, ki] - evals_k[n0, ki]
     end
 
-    # ── Build index lookup: group triples by (ki, n0) ──
-    # slot_key[ki][n0] -> (row_indices, n_bands)
+    # ── Index lookup: group triples by (ki, n0) ──
     slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
     for (I, (ki, n0, n)) in enumerate(triples)
         key = (ki, n0)
@@ -232,7 +269,6 @@ function _build_A_matrix(
         push!(slot_key[key][2], n)
     end
 
-    # Collect unique ki and n0 values per ki
     ki_set = sort(unique(t[1] for t in triples))
     n0_per_ki = Dict{Int, Vector{Int}}()
     for ki in ki_set
@@ -244,55 +280,71 @@ function _build_A_matrix(
     for ki in ki_set
         kk  = kpoints[ki]
         kkq = kk .+ q
-
-        Uk  = @view evecs_k[:, :, ki]
-        Ukq = @view cache_kq.evecs[:, :, ki]
+        Uk  = @view evecs_k[:, :, ki]       # U_{a,n}(k)
+        Ukq = @view cache_kq.evecs[:, :, ki] # U_{a,n}(k+q)
 
         for pi in ki_set
             kp  = kpoints[pi]
             kpq = kp .+ q
+            Up  = @view evecs_k[:, :, pi]       # U_{a,n}(p)
+            Upq = @view cache_kq.evecs[:, :, pi] # U_{a,n}(p+q)
 
-            Up  = @view evecs_k[:, :, pi]
-            Upq = @view cache_kq.evecs[:, :, pi]
+            # ── Four V_k calls ──
+            Vd1_raw = V_k(kkq, kpq, kp)     # Ṽ^{abcd}(k+q, p+q, p)
+            Vd2_raw = V_k(kp, kk, kkq)      # Ṽ^{abcd}(p,   k,   k+q)
+            Vx1_raw = V_k(kkq, kk, kp)      # Ṽ^{abcd}(k+q, k,   p)
+            Vx2_raw = V_k(kp, kpq, kkq)     # Ṽ^{abcd}(p,   p+q, k+q)
 
-            # ── Four V calls ──
-            Vd1_raw = V_k(kkq, kpq, kp)     # (k+q, p+q, p)
-            Vd2_raw = V_k(kp, kk, kkq)      # (p,   k,   k+q)
-            Vx1_raw = V_k(kkq, kk, kp)      # (k+q, k,   p)
-            Vx2_raw = V_k(kp, kpq, kkq)     # (p,   p+q, k+q)
+            # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
+            #
+            # Target: M[i_n + (i_n'-1)n,  i_n₀' + (i_n₀-1)n] = V with band roles permuted
+            #
+            # Vd1: V^{abcd}(k+q,p+q,p) — a↔n, b↔n', c↔n₀', d↔n₀
+            #   Storage (a,b,c,d) already is (n,n',n₀',n₀) → no permutation
+            Vd1_A = reshape(Vd1_raw, norb2, norb2)
 
-            # ── Reshape V for A kernel ──
-            Vd_A  = reshape(Vd1_raw, norb2, norb2) .+
-                     reshape(permutedims(Vd2_raw, (3,4,1,2)), norb2, norb2)
-            Vx1_A = reshape(permutedims(Vx1_raw, (1,4,2,3)), norb2, norb2)
+            # Vd2: V^{abcd}(p,k,k+q)   — a↔n₀', b↔n₀, c↔n, d↔n'
+            #   Need (n,n',n₀',n₀) = (c,d,a,b) → permutedims(V, (3,4,1,2))
+            Vd2_A = reshape(permutedims(Vd2_raw, (3,4,1,2)), norb2, norb2)
+
+            # Vx1: V^{abcd}(k+q,k,p)   — a↔n, b↔n₀, c↔n₀', d↔n'
+            #   Need (n,n',n₀',n₀) = (a,d,c,b) → permutedims(V, (1,4,3,2))
+            Vx1_A = reshape(permutedims(Vx1_raw, (1,4,3,2)), norb2, norb2)
+
+            # Vx2: V^{abcd}(p,p+q,k+q) — a↔n₀', b↔n', c↔n, d↔n₀
+            #   Need (n,n',n₀',n₀) = (c,b,a,d) → permutedims(V, (3,2,1,4))
             Vx2_A = reshape(permutedims(Vx2_raw, (3,2,1,4)), norb2, norb2)
 
-            # ── Inner loops over hole bands ──
+            # ── Combined: V_A = (Kx - Kd) kernel, single matrix ──
+            V_A = (Vx1_A .+ Vx2_A .- Vd1_A .- Vd2_A)
+
+            # ── Inner loops over hole bands n₀, n₀' ──
             for n0 in get(n0_per_ki, ki, Int[])
                 key_k = (ki, n0)
                 haskey(slot_key, key_k) || continue
                 rows_k, ns_k = slot_key[key_k]
-
-                U_n0_k   = @view Uk[:, n0]
-                U_kq_mat = @view Ukq[:, ns_k]
+                U_n0_k   = @view Uk[:, n0]       # U_{a,n₀}(k)
+                U_kq_mat = @view Ukq[:, ns_k]    # [U_{a,n}(k+q) for n ∈ ns_k]
 
                 for n0p in get(n0_per_ki, pi, Int[])
                     key_p = (pi, n0p)
                     haskey(slot_key, key_p) || continue
                     rows_p, ns_p = slot_key[key_p]
+                    U_n0p_p  = @view Up[:, n0p]   # U_{a,n₀'}(p)
+                    U_pq_mat = @view Upq[:, ns_p]  # [U_{a,n'}(p+q) for n' ∈ ns_p]
 
-                    U_n0p_p  = @view Up[:, n0p]
-                    U_pq_mat = @view Upq[:, ns_p]
+                    # ── Step 1: hole contraction ──
+                    # kron_vec = kron(U_{n₀}(k), U*_{n₀'}(p))
+                    #   index: [(d-1)n + c] = U_{d,n₀}(k) · U*_{c,n₀'}(p)
+                    #   → n₀' (c) fast, n₀ (d) slow — matches column layout
+                    kron_vec = kron(U_n0_k, conj(U_n0p_p))
 
-                    conj_U_n0p_p = conj(U_n0p_p)
-                    kron_Ac = kron(U_n0_k,       conj_U_n0p_p)
-                    kron_Ax = kron(conj_U_n0p_p, U_n0_k)
+                    # K[a,b] = Σ_{c,d} V_A[a+(b-1)n, c+(d-1)n] · kron_vec[c+(d-1)n]
+                    K = reshape(V_A * kron_vec, norb, norb)
 
-                    Ad = reshape(Vd_A  * kron_Ac, norb, norb)
-                    Ax = reshape(Vx1_A * kron_Ax, norb, norb) +
-                         reshape(Vx2_A * kron_Ac, norb, norb)
-
-                    A[rows_k, rows_p] .+= (U_kq_mat' * (Ax - Ad) * U_pq_mat) .* invN
+                    # ── Step 2: particle contraction ──
+                    # result[n,n'] = Σ_{a,b} U*_{a,n}(k+q) · K[a,b] · U_{b,n'}(p+q)
+                    A[rows_k, rows_p] .+= (U_kq_mat' * K * U_pq_mat) .* invN
                 end
             end
         end
@@ -312,10 +364,27 @@ end
 
 Build the RPA coupling matrix B(q), following §3.5 of particle_hole2.md:
 
-    B^{n₀n, n₀'n'}_{kp}(q) = Bd + Bx
+    B^{n₀n, n₀'n'}_{kp}(q) = (1/N)(Bx - Bd)
 
-Uses eigensystems at k+q (from `cache_kq`) and p-q (from `cache_kmq`).
-Uses kron+reshape+BLAS for fast tensor contractions.
+where only the normal-ordered interaction contributes (one-body parts vanish).
+
+Direct (-1/N):
+  Bd = Σ_{abcd} [
+      U*_{a,n'}(p-q) U_{b,n₀}(k)  U*_{c,n}(k+q)  U_{d,n₀'}(p)  Ṽ^{abcd}(p-q, k, k+q)
+    + U*_{a,n}(k+q)  U_{b,n₀'}(p) U*_{c,n'}(p-q) U_{d,n₀}(k)   Ṽ^{abcd}(k+q, p, p-q)
+  ]
+
+Exchange (+1/N):
+  Bx = Σ_{abcd} [
+      U*_{a,n'}(p-q) U_{b,n₀'}(p) U*_{c,n}(k+q)  U_{d,n₀}(k)   Ṽ^{abcd}(p-q, p, k+q)
+    + U*_{a,n}(k+q)  U_{b,n₀}(k)  U*_{c,n'}(p-q) U_{d,n₀'}(p)  Ṽ^{abcd}(k+q, k, p-q)
+  ]
+
+## Tensor contraction strategy (same as A)
+
+Step 1 — hole contraction: kron(U_{n₀}(k), U_{n₀'}(p)) [no conjugation on either]
+Step 2 — particle contraction: U†(k+q) * K * conj(U(p-q))
+  Note: right projection uses conj(U(p-q)) because n' appears as U*_{n'}(p-q) in the formula.
 """
 function _build_B_matrix(
     V_k,
@@ -332,7 +401,7 @@ function _build_B_matrix(
     norb2 = norb * norb
     B    = zeros(ComplexF64, M, M)
 
-    # ── Build index lookup: group triples by (ki, n0) ──
+    # ── Index lookup: group triples by (ki, n0) ──
     slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
     for (I, (ki, n0, n)) in enumerate(triples)
         key = (ki, n0)
@@ -354,63 +423,70 @@ function _build_B_matrix(
     for ki in ki_set
         kk  = kpoints[ki]
         kkq = kk .+ q
-
-        Uk   = @view evecs_k[:, :, ki]
-        Ukq  = @view cache_kq.evecs[:, :, ki]
+        Uk   = @view evecs_k[:, :, ki]       # U_{a,n}(k)
+        Ukq  = @view cache_kq.evecs[:, :, ki] # U_{a,n}(k+q)
 
         for pi in ki_set
             kp   = kpoints[pi]
             kpmq = kp .- q
+            Up   = @view evecs_k[:, :, pi]       # U_{a,n}(p)
+            Upmq = @view cache_kmq.evecs[:, :, pi] # U_{a,n}(p-q)
 
-            Up   = @view evecs_k[:, :, pi]
-            Upmq = @view cache_kmq.evecs[:, :, pi]
+            # ── Four V_k calls ──
+            Vd1_raw = V_k(kpmq, kk, kkq)     # Ṽ^{abcd}(p-q, k,   k+q)
+            Vd2_raw = V_k(kkq, kp, kpmq)     # Ṽ^{abcd}(k+q, p,   p-q)
+            Vx1_raw = V_k(kpmq, kp, kkq)     # Ṽ^{abcd}(p-q, p,   k+q)
+            Vx2_raw = V_k(kkq, kk, kpmq)     # Ṽ^{abcd}(k+q, k,   p-q)
 
-            # ── Four V calls for B ──
-            Vd1_raw = V_k(kpmq, kk, kkq)     # (p-q, k,   k+q)
-            Vd2_raw = V_k(kkq, kp, kpmq)     # (k+q, p,   p-q)
-            Vx1_raw = V_k(kpmq, kp, kkq)     # (p-q, p,   k+q)
-            Vx2_raw = V_k(kkq, kk, kpmq)     # (k+q, k,   p-q)
+            # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
+            #
+            # Bd1: V^{abcd}(p-q,k,k+q) — a↔n', b↔n₀, c↔n, d↔n₀'
+            #   (n,n',n₀',n₀) = (c,a,d,b) → permutedims(V, (3,1,4,2))
+            Vd1_B = reshape(permutedims(Vd1_raw, (3,1,4,2)), norb2, norb2)
 
-            # ── Reshape V for B kernel ──
-            # Bd1: V[a,b,c,d] with n↔c, n'↔a, n0↔b, n0'↔d → perm (3,1,2,4)
-            # Bd2: V[a,b,c,d] with n↔a, n'↔c, n0'↔b, n0↔d → perm (1,3,2,4)
-            # Bx1: V[a,b,c,d] with n↔c, n'↔a, n0'↔b, n0↔d → perm (3,1,2,4)
-            # Bx2: V[a,b,c,d] with n↔a, n'↔c, n0↔b, n0'↔d → perm (1,3,2,4)
-            Vd1_B = reshape(permutedims(Vd1_raw, (3,1,2,4)), norb2, norb2)
+            # Bd2: V^{abcd}(k+q,p,p-q) — a↔n, b↔n₀', c↔n', d↔n₀
+            #   (n,n',n₀',n₀) = (a,c,b,d) → permutedims(V, (1,3,2,4))
             Vd2_B = reshape(permutedims(Vd2_raw, (1,3,2,4)), norb2, norb2)
-            Vx1_B = reshape(permutedims(Vx1_raw, (3,1,2,4)), norb2, norb2)
-            Vx2_B = reshape(permutedims(Vx2_raw, (1,3,2,4)), norb2, norb2)
 
-            # ── Inner loops over hole bands ──
+            # Bx1: V^{abcd}(p-q,p,k+q) — a↔n', b↔n₀', c↔n, d↔n₀
+            #   (n,n',n₀',n₀) = (c,a,b,d) → permutedims(V, (3,1,2,4))
+            Bx1_B = reshape(permutedims(Vx1_raw, (3,1,2,4)), norb2, norb2)
+
+            # Bx2: V^{abcd}(k+q,k,p-q) — a↔n, b↔n₀, c↔n', d↔n₀'
+            #   (n,n',n₀',n₀) = (a,c,d,b) → permutedims(V, (1,3,4,2))
+            Bx2_B = reshape(permutedims(Vx2_raw, (1,3,4,2)), norb2, norb2)
+
+            # ── Combined: V_B = (Bx - Bd) kernel, single matrix ──
+            V_B = (Bx1_B .+ Bx2_B .- Vd1_B .- Vd2_B)
+
+            # ── Inner loops over hole bands n₀, n₀' ──
             for n0 in get(n0_per_ki, ki, Int[])
                 key_k = (ki, n0)
                 haskey(slot_key, key_k) || continue
                 rows_k, ns_k = slot_key[key_k]
-
-                U_n0_k   = @view Uk[:, n0]
-                U_kq_mat = @view Ukq[:, ns_k]
+                U_n0_k   = @view Uk[:, n0]       # U_{a,n₀}(k)
+                U_kq_mat = @view Ukq[:, ns_k]    # [U_{a,n}(k+q) for n ∈ ns_k]
 
                 for n0p in get(n0_per_ki, pi, Int[])
                     key_p = (pi, n0p)
                     haskey(slot_key, key_p) || continue
                     rows_p, ns_p = slot_key[key_p]
+                    U_n0p_p   = @view Up[:, n0p]   # U_{a,n₀'}(p)
+                    U_pmq_mat = @view Upmq[:, ns_p] # [U_{a,n'}(p-q) for n' ∈ ns_p]
 
-                    U_n0p_p   = @view Up[:, n0p]
-                    U_pmq_mat = @view Upmq[:, ns_p]
+                    # ── Step 1: hole contraction ──
+                    # kron_vec = kron(U_{n₀}(k), U_{n₀'}(p))  [NO conjugation]
+                    #   index [(d-1)n + c] = U_{d,n₀}(k) · U_{c,n₀'}(p)
+                    #   → n₀' (c) fast, n₀ (d) slow — matches column layout
+                    kron_vec = kron(U_n0_k, U_n0p_p)
 
-                    # kron vectors for hole contractions
-                    # Bd1, Bx2: n0↔b, n0'↔d → kron(U_n0_k, U_n0p_p)
-                    # Bd2, Bx1: n0'↔b, n0↔d → kron(U_n0p_p, U_n0_k)
-                    kron_B1 = kron(U_n0_k,  U_n0p_p)
-                    kron_B2 = kron(U_n0p_p, U_n0_k)
+                    K = reshape(V_B * kron_vec, norb, norb)
 
-                    Bd = reshape(Vd1_B * kron_B1, norb, norb) +
-                         reshape(Vd2_B * kron_B2, norb, norb)
-                    Bx = reshape(Vx1_B * kron_B2, norb, norb) +
-                         reshape(Vx2_B * kron_B1, norb, norb)
-
-                    # Project: left = U*(k+q), right = U*(p-q)
-                    B[rows_k, rows_p] .+= (U_kq_mat' * (Bx - Bd) * conj(U_pmq_mat)) .* invN
+                    # ── Step 2: particle contraction ──
+                    # B[n,n'] = Σ_{a,b} U*_{a,n}(k+q) · K[a,b] · U*_{b,n'}(p-q)
+                    # Left: U_kq_mat' = U†(k+q), contracts n via U*_{a,n}(k+q)
+                    # Right: conj(U_pmq_mat), contracts n' via U*_{b,n'}(p-q)
+                    B[rows_k, rows_p] .+= (U_kq_mat' * K * conj(U_pmq_mat)) .* invN
                 end
             end
         end
@@ -432,13 +508,27 @@ Build the RPA backward-backward matrix D(q), following §5.5–5.6 of
 particle_hole2.md:
 
     D^{n₀n, n₀'n'}_{kp}(q) = δ_{kp} δ_{n₀n₀'} δ_{nn'} (E^{n₀}_k - E^n_{k-q})
-                              + θ_n(k-q) θ_{n'}(p-q) × (Dd + Dx)
+                              + θ_n(k-q) θ_{n'}(p-q) × (1/N)(Dd - Dx)
 
 where θ_n(k-q) = 1 if n ∈ unocc(k-q), 0 otherwise.
+Sign structure is opposite to A: direct +1/N, exchange -1/N.
 
-Uses eigensystems at k-q (from `cache_kmq`).  Note the opposite sign structure
-compared to A: direct +1/N, exchange -1/N.
-Uses kron+reshape+BLAS for fast tensor contractions.
+Direct (+1/N):
+  Dd = Σ_{abcd} [
+      U*_{a,n'}(p-q) U_{b,n}(k-q)  U*_{c,n₀}(k)  U_{d,n₀'}(p)  Ṽ^{abcd}(p-q, k-q, k)
+    + U*_{a,n₀}(k)   U_{b,n₀'}(p)  U*_{c,n'}(p-q) U_{d,n}(k-q)  Ṽ^{abcd}(k, p, p-q)
+  ]
+
+Exchange (-1/N):
+  Dx = Σ_{abcd} [
+      U*_{a,n'}(p-q) U_{b,n₀'}(p)  U*_{c,n₀}(k)  U_{d,n}(k-q)  Ṽ^{abcd}(p-q, p, k)
+    + U*_{a,n₀}(k)   U_{b,n}(k-q)  U*_{c,n'}(p-q) U_{d,n₀'}(p)  Ṽ^{abcd}(k, k-q, p-q)
+  ]
+
+## Tensor contraction strategy (same as A and B)
+
+Step 1 — hole contraction: kron(U*_{n₀}(k), U_{n₀'}(p))
+Step 2 — particle contraction: U†(k-q) * K * conj(U(p-q))
 """
 function _build_D_matrix(
     V_k,
@@ -457,12 +547,12 @@ function _build_D_matrix(
     norb2 = norb * norb
     D    = zeros(ComplexF64, M, M)
 
-    # Diagonal: E^{n₀}_k - E^n_{k-q}
+    # ── Diagonal: E^{n₀}_k - E^n_{k-q} ──
     for (I, (ki, n0, n)) in enumerate(triples)
         D[I, I] = evals_k[n0, ki] - cache_kmq.evals[n, ki]
     end
 
-    # ── Build index lookup: group triples by (ki, n0) ──
+    # ── Index lookup: group triples by (ki, n0) ──
     slot_key = Dict{Tuple{Int,Int}, Tuple{Vector{Int}, Vector{Int}}}()
     for (I, (ki, n0, n)) in enumerate(triples)
         key = (ki, n0)
@@ -484,34 +574,44 @@ function _build_D_matrix(
     for ki in ki_set
         kk   = kpoints[ki]
         kkmq = kk .- q
-
-        Uk   = @view evecs_k[:, :, ki]
-        Ukmq = @view cache_kmq.evecs[:, :, ki]
+        Uk   = @view evecs_k[:, :, ki]        # U_{a,n}(k)
+        Ukmq = @view cache_kmq.evecs[:, :, ki] # U_{a,n}(k-q)
 
         for pi in ki_set
             kp   = kpoints[pi]
             kpmq = kp .- q
+            Up   = @view evecs_k[:, :, pi]        # U_{a,n}(p)
+            Upmq = @view cache_kmq.evecs[:, :, pi] # U_{a,n}(p-q)
 
-            Up   = @view evecs_k[:, :, pi]
-            Upmq = @view cache_kmq.evecs[:, :, pi]
+            # ── Four V_k calls ──
+            Vd1_raw = V_k(kpmq, kkmq, kk)    # Ṽ^{abcd}(p-q, k-q, k)
+            Vd2_raw = V_k(kk, kp, kpmq)      # Ṽ^{abcd}(k,   p,   p-q)
+            Vx1_raw = V_k(kpmq, kp, kk)      # Ṽ^{abcd}(p-q, p,   k)
+            Vx2_raw = V_k(kk, kkmq, kpmq)    # Ṽ^{abcd}(k,   k-q, p-q)
 
-            # ── Four V calls for D ──
-            Vd1_raw = V_k(kpmq, kkmq, kk)    # (p-q, k-q, k)
-            Vd2_raw = V_k(kk, kp, kpmq)      # (k,   p,   p-q)
-            Vx1_raw = V_k(kpmq, kp, kk)      # (p-q, p,   k)
-            Vx2_raw = V_k(kk, kkmq, kpmq)    # (k,   k-q, p-q)
+            # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
+            #
+            # Dd1: V^{abcd}(p-q,k-q,k) — a↔n', b↔n, c↔n₀, d↔n₀'
+            #   (n,n',n₀',n₀) = (b,a,d,c) → permutedims(V, (2,1,4,3))
+            Vd1_D = reshape(permutedims(Vd1_raw, (2,1,4,3)), norb2, norb2)
 
-            # ── Reshape V for D kernel ──
-            # Dd1: rows=(b,a) particle, cols=(c,d) hole → perm (2,1,3,4)
-            # Dd2: rows=(d,c) particle, cols=(a,b) hole → perm (4,3,1,2)
-            # Dx1: rows=(d,a) particle, cols=(b,c) hole → perm (4,1,2,3)
-            # Dx2: rows=(b,c) particle, cols=(a,d) hole → perm (2,3,1,4)
-            Vd1_D = reshape(permutedims(Vd1_raw, (2,1,3,4)), norb2, norb2)
-            Vd2_D = reshape(permutedims(Vd2_raw, (4,3,1,2)), norb2, norb2)
-            Vx1_D = reshape(permutedims(Vx1_raw, (4,1,2,3)), norb2, norb2)
-            Vx2_D = reshape(permutedims(Vx2_raw, (2,3,1,4)), norb2, norb2)
+            # Dd2: V^{abcd}(k,p,p-q) — a↔n₀, b↔n₀', c↔n', d↔n
+            #   (n,n',n₀',n₀) = (d,c,b,a) → permutedims(V, (4,3,2,1))
+            Vd2_D = reshape(permutedims(Vd2_raw, (4,3,2,1)), norb2, norb2)
 
-            # ── Inner loops over hole bands ──
+            # Dx1: V^{abcd}(p-q,p,k) — a↔n', b↔n₀', c↔n₀, d↔n
+            #   (n,n',n₀',n₀) = (d,a,b,c) → permutedims(V, (4,1,2,3))
+            Dx1_D = reshape(permutedims(Vx1_raw, (4,1,2,3)), norb2, norb2)
+
+            # Dx2: V^{abcd}(k,k-q,p-q) — a↔n₀, b↔n, c↔n', d↔n₀'
+            #   (n,n',n₀',n₀) = (b,c,d,a) → permutedims(V, (2,3,4,1))
+            Dx2_D = reshape(permutedims(Vx2_raw, (2,3,4,1)), norb2, norb2)
+
+            # ── Combined: V_D = (Dd - Dx) kernel, single matrix ──
+            # D has opposite sign to A: direct +1/N, exchange -1/N
+            V_D = (Vd1_D .+ Vd2_D .- Dx1_D .- Dx2_D)
+
+            # ── Inner loops over hole bands n₀, n₀' ──
             for n0 in get(n0_per_ki, ki, Int[])
                 key_k = (ki, n0)
                 haskey(slot_key, key_k) || continue
@@ -521,8 +621,8 @@ function _build_D_matrix(
                 theta_k = [cache_kmq.evals[n, ki] > mu + tol_occ ? 1.0 : 0.0 for n in ns_k]
                 all(theta_k .== 0.0) && continue
 
-                U_n0_k    = @view Uk[:, n0]
-                U_kmq_mat = @view Ukmq[:, ns_k]
+                U_n0_k    = @view Uk[:, n0]        # U_{a,n₀}(k)
+                U_kmq_mat = @view Ukmq[:, ns_k]    # [U_{a,n}(k-q) for n ∈ ns_k]
 
                 for n0p in get(n0_per_ki, pi, Int[])
                     key_p = (pi, n0p)
@@ -533,24 +633,20 @@ function _build_D_matrix(
                     theta_p = [cache_kmq.evals[n, pi] > mu + tol_occ ? 1.0 : 0.0 for n in ns_p]
                     all(theta_p .== 0.0) && continue
 
-                    U_n0p_p   = @view Up[:, n0p]
-                    U_pmq_mat = @view Upmq[:, ns_p]
+                    U_n0p_p   = @view Up[:, n0p]    # U_{a,n₀'}(p)
+                    U_pmq_mat = @view Upmq[:, ns_p]  # [U_{a,n'}(p-q) for n' ∈ ns_p]
 
-                    # kron vectors for hole contractions
-                    # Dd1, Dd2, Dx2: kron(conj(U_n0_k), U_n0p_p)
-                    # Dx1:           kron(U_n0p_p, conj(U_n0_k))
-                    conj_U_n0_k = conj(U_n0_k)
-                    kron_Dc1 = kron(conj_U_n0_k, U_n0p_p)
-                    kron_Dc2 = kron(U_n0p_p, conj_U_n0_k)
+                    # ── Step 1: hole contraction ──
+                    # kron_vec = kron(U*_{n₀}(k), U_{n₀'}(p))
+                    #   index [(d-1)n + c] = U*_{d,n₀}(k) · U_{c,n₀'}(p)
+                    #   → n₀' (c) fast, n₀ (d) slow — matches column layout
+                    kron_vec = kron(conj(U_n0_k), U_n0p_p)
 
-                    Dd = reshape(Vd1_D * kron_Dc1, norb, norb) +
-                         reshape(Vd2_D * kron_Dc1, norb, norb)
-                    Dx = reshape(Vx1_D * kron_Dc2, norb, norb) +
-                         reshape(Vx2_D * kron_Dc1, norb, norb)
+                    K = reshape(V_D * kron_vec, norb, norb)
 
-                    # Project: left = U*(k-q), right = U*(p-q)
-                    # D has opposite sign: +(direct) -(exchange)
-                    block = (U_kmq_mat' * (Dd - Dx) * conj(U_pmq_mat)) .* invN
+                    # ── Step 2: particle contraction ──
+                    # D[n,n'] = Σ_{a,b} U*_{a,n}(k-q) · K[a,b] · U*_{b,n'}(p-q)
+                    block = (U_kmq_mat' * K * conj(U_pmq_mat)) .* invN
 
                     # Apply occupation factors θ_n(k-q) and θ_{n'}(p-q)
                     block .*= theta_k       # multiply rows
