@@ -199,6 +199,31 @@ function build_Vk(V_r)
 end
 
 """
+    build_Vk_inplace(V_r) -> Function
+
+In-place variant of `build_Vk`. Returns a closure
+`V_k!(buf, k1, k2, k3)` that writes the interaction kernel into the
+pre-allocated array `buf` (shape `(d, d, d, d)`), avoiding heap allocation
+on every call. Use this in hot loops where `V_k` would be called many times.
+"""
+function build_Vk_inplace(V_r)
+    isempty(V_r.mats) && return nothing
+    return function(buf::Array{ComplexF64,4},
+                    k1::AbstractVector{<:Real},
+                    k2::AbstractVector{<:Real},
+                    k3::AbstractVector{<:Real})
+        fill!(buf, zero(ComplexF64))
+        for (mat, (τ1, τ2, τ3)) in zip(V_r.mats, V_r.taus)
+            phase = cis(-dot(k1, τ1) + dot(k2, τ2) - dot(k3, τ3))
+            @inbounds @simd for i in eachindex(buf)
+                buf[i] += mat[i] * phase
+            end
+        end
+        return buf
+    end
+end
+
+"""
     build_Uk(V_k) -> Function
 
 Return a closure that, given two k-points `k` and `q`, assembles the

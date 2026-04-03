@@ -239,7 +239,8 @@ kron(x, y)[(i-1)n + j] = x[i] · y[j]
   (second argument y varies fastest)
 """
 function _build_A_matrix(
-    V_k,
+    V_k!,
+    Vbufs::NTuple{4, Array{ComplexF64,4}},
     evecs_k::AbstractArray{<:Number,3},
     evals_k::AbstractMatrix,
     cache_kq::EigenCache,
@@ -289,11 +290,11 @@ function _build_A_matrix(
             Up  = @view evecs_k[:, :, pi]       # U_{a,n}(p)
             Upq = @view cache_kq.evecs[:, :, pi] # U_{a,n}(p+q)
 
-            # ── Four V_k calls ──
-            Vd1_raw = V_k(kkq, kpq, kp)     # Ṽ^{abcd}(k+q, p+q, p)
-            Vd2_raw = V_k(kp, kk, kkq)      # Ṽ^{abcd}(p,   k,   k+q)
-            Vx1_raw = V_k(kkq, kk, kp)      # Ṽ^{abcd}(k+q, k,   p)
-            Vx2_raw = V_k(kp, kpq, kkq)     # Ṽ^{abcd}(p,   p+q, k+q)
+            # ── Four V_k! calls (write into pre-allocated buffers) ──
+            Vd1_raw = V_k!(Vbufs[1], kkq, kpq, kp)  # Ṽ^{abcd}(k+q, p+q, p)
+            Vd2_raw = V_k!(Vbufs[2], kp, kk, kkq)   # Ṽ^{abcd}(p,   k,   k+q)
+            Vx1_raw = V_k!(Vbufs[3], kkq, kk, kp)   # Ṽ^{abcd}(k+q, k,   p)
+            Vx2_raw = V_k!(Vbufs[4], kp, kpq, kkq)  # Ṽ^{abcd}(p,   p+q, k+q)
 
             # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
             #
@@ -387,7 +388,8 @@ Step 2 — particle contraction: U†(k+q) * K * conj(U(p-q))
   Note: right projection uses conj(U(p-q)) because n' appears as U*_{n'}(p-q) in the formula.
 """
 function _build_B_matrix(
-    V_k,
+    V_k!,
+    Vbufs::NTuple{4, Array{ComplexF64,4}},
     evecs_k::AbstractArray{<:Number,3},
     cache_kq::EigenCache,
     cache_kmq::EigenCache,
@@ -432,11 +434,11 @@ function _build_B_matrix(
             Up   = @view evecs_k[:, :, pi]       # U_{a,n}(p)
             Upmq = @view cache_kmq.evecs[:, :, pi] # U_{a,n}(p-q)
 
-            # ── Four V_k calls ──
-            Vd1_raw = V_k(kpmq, kk, kkq)     # Ṽ^{abcd}(p-q, k,   k+q)
-            Vd2_raw = V_k(kkq, kp, kpmq)     # Ṽ^{abcd}(k+q, p,   p-q)
-            Vx1_raw = V_k(kpmq, kp, kkq)     # Ṽ^{abcd}(p-q, p,   k+q)
-            Vx2_raw = V_k(kkq, kk, kpmq)     # Ṽ^{abcd}(k+q, k,   p-q)
+            # ── Four V_k! calls (write into pre-allocated buffers) ──
+            Vd1_raw = V_k!(Vbufs[1], kpmq, kk, kkq)   # Ṽ^{abcd}(p-q, k,   k+q)
+            Vd2_raw = V_k!(Vbufs[2], kkq, kp, kpmq)   # Ṽ^{abcd}(k+q, p,   p-q)
+            Vx1_raw = V_k!(Vbufs[3], kpmq, kp, kkq)   # Ṽ^{abcd}(p-q, p,   k+q)
+            Vx2_raw = V_k!(Vbufs[4], kkq, kk, kpmq)   # Ṽ^{abcd}(k+q, k,   p-q)
 
             # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
             #
@@ -531,7 +533,8 @@ Step 1 — hole contraction: kron(U*_{n₀}(k), U_{n₀'}(p))
 Step 2 — particle contraction: U†(k-q) * K * conj(U(p-q))
 """
 function _build_D_matrix(
-    V_k,
+    V_k!,
+    Vbufs::NTuple{4, Array{ComplexF64,4}},
     evecs_k::AbstractArray{<:Number,3},
     evals_k::AbstractMatrix,
     cache_kmq::EigenCache,
@@ -583,11 +586,11 @@ function _build_D_matrix(
             Up   = @view evecs_k[:, :, pi]        # U_{a,n}(p)
             Upmq = @view cache_kmq.evecs[:, :, pi] # U_{a,n}(p-q)
 
-            # ── Four V_k calls ──
-            Vd1_raw = V_k(kpmq, kkmq, kk)    # Ṽ^{abcd}(p-q, k-q, k)
-            Vd2_raw = V_k(kk, kp, kpmq)      # Ṽ^{abcd}(k,   p,   p-q)
-            Vx1_raw = V_k(kpmq, kp, kk)      # Ṽ^{abcd}(p-q, p,   k)
-            Vx2_raw = V_k(kk, kkmq, kpmq)    # Ṽ^{abcd}(k,   k-q, p-q)
+            # ── Four V_k! calls (write into pre-allocated buffers) ──
+            Vd1_raw = V_k!(Vbufs[1], kpmq, kkmq, kk)   # Ṽ^{abcd}(p-q, k-q, k)
+            Vd2_raw = V_k!(Vbufs[2], kk, kp, kpmq)     # Ṽ^{abcd}(k,   p,   p-q)
+            Vx1_raw = V_k!(Vbufs[3], kpmq, kp, kk)     # Ṽ^{abcd}(p-q, p,   k)
+            Vx2_raw = V_k!(Vbufs[4], kk, kkmq, kpmq)   # Ṽ^{abcd}(k,   k-q, p-q)
 
             # ── Permute each V to unified layout: rows=(n,n'), cols=(n₀',n₀) ──
             #
@@ -663,6 +666,46 @@ end
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Timing utilities for particle-hole excitations
+# ──────────────────────────────────────────────────────────────────────────────
+
+function _accum_ph!(d::Dict{String, Tuple{Int64, Int}},
+                    lock::ReentrantLock, key::String, ns::Int64)
+    Base.lock(lock) do
+        prev_ns, cnt = get(d, key, (Int64(0), 0))
+        d[key] = (prev_ns + ns, cnt + 1)
+    end
+end
+
+const _PHASE_ORDER_PH = ["eigen_cache", "build_A", "build_B", "build_D",
+                          "eigen_solve"]
+
+function _print_timing_table_ph(timings::Dict{String, Tuple{Int64, Int}},
+                                solver::Symbol)
+    W = 22
+    sep = "  " * "─"^58
+    println()
+    println("  ── Timing Summary (particle-hole $solver) " * "─"^16)
+    println(@sprintf("  %-*s  %10s  %10s  %6s", W, "Phase", "Total", "Avg", "Calls"))
+    println(sep)
+    for key in _PHASE_ORDER_PH
+        haskey(timings, key) || continue
+        ns, cnt = timings[key]
+        println(@sprintf("  %-*s  %s  %s  %6d", W, key,
+                         _fmt_ns(ns), _fmt_ns(ns ÷ max(cnt, 1)), cnt))
+    end
+    println(sep)
+    if haskey(timings, "solve_ph")
+        ns, cnt = timings["solve_ph"]
+        println(@sprintf("  %-*s  %s  %s  %6d", W, "solve_ph (total)",
+                         _fmt_ns(ns), _fmt_ns(ns ÷ max(cnt, 1)), cnt))
+    end
+    println(sep)
+    println()
+    flush(stdout)
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -727,23 +770,38 @@ function solve_ph_excitations(
 
     # Build the interaction kernel in momentum space
     V_r = build_Vr(dofs, twobody.ops, twobody.irvec)
-    V_k = build_Vk(V_r)
+    V_k! = build_Vk_inplace(V_r)
 
     Nq = length(qpoints)
     energies      = Vector{Vector{Float64}}(undef, Nq)
     wavefunctions = Vector{Matrix{ComplexF64}}(undef, Nq)
     triples_out   = Vector{Vector{Tuple{Int,Int,Int}}}(undef, Nq)
 
-    verbose && println("  Solving $Nq q-points ($solver) with $(Threads.nthreads()) thread(s)...")
+    verbose && (println("  Solving $Nq q-points ($solver) with $(Threads.nthreads()) thread(s)..."); flush(stdout))
     log_lock = ReentrantLock()
+    timings  = Dict{String, Tuple{Int64, Int}}()
+    solve_start = Int64(time_ns())
+
+    # Pre-allocate one set of 4 V_k buffers per thread to avoid heap allocation
+    # inside the hot (ki, pi) loop. Each thread uses its own set exclusively.
+    # Use Threads.maxthreadid() (>= nthreads()) to cover all possible threadid() values
+    # under Julia's :dynamic scheduler.
+    norb_buf = size(hf_result.eigenvalues, 1)
+    Vbufs_per_thread = [
+        ntuple(_ -> zeros(ComplexF64, norb_buf, norb_buf, norb_buf, norb_buf), 4)
+        for _ in 1:Threads.maxthreadid()
+    ]
 
     Threads.@threads for iq in 1:Nq
         q = qpoints[iq]
+        Vbufs = Vbufs_per_thread[Threads.threadid()]
 
         # Build eigensystem cache for k+q shift
+        t0 = Int64(time_ns())
         cache_kq = _build_eigen_cache(q, kpoints_hf, kpoints_folded,
                                       B_inv, B_mat, evals_hf, evecs_hf,
                                       dofs, onebody, twobody, G_k)
+        _accum_ph!(timings, log_lock, "eigen_cache", Int64(time_ns()) - t0)
 
         # Build particle-hole pairs (occupation auto-detected per k-point)
         triples = _build_ph_pairs(evals_hf, cache_kq.evals, mu;
@@ -757,33 +815,44 @@ function solve_ph_excitations(
             verbose && lock(log_lock) do
                 @printf("  q[%d/%d] = [%s] ... M=0, skip\n",
                     iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "))
+                flush(stdout)
             end
             continue
         end
 
         # Build the A matrix (TDA effective Hamiltonian)
-        A = _build_A_matrix(V_k, evecs_hf, evals_hf, cache_kq,
+        t0 = Int64(time_ns())
+        A = _build_A_matrix(V_k!, Vbufs, evecs_hf, evals_hf, cache_kq,
                             kpoints_hf, q, triples, Nk)
+        _accum_ph!(timings, log_lock, "build_A", Int64(time_ns()) - t0)
 
         if solver == :TDA
+            t0 = Int64(time_ns())
             F = eigen(Hermitian(A))
             energies[iq]      = F.values
             wavefunctions[iq] = F.vectors
+            _accum_ph!(timings, log_lock, "eigen_solve", Int64(time_ns()) - t0)
+
             verbose && lock(log_lock) do
                 @printf("  q[%d/%d] = [%s] ... M=%d, done (TDA)\n",
                     iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), M)
+                flush(stdout)
             end
 
         elseif solver == :RPA
             # Build eigensystem cache for k-q shift (needed by B and D)
             mq = -q
+            t0 = Int64(time_ns())
             cache_kmq = _build_eigen_cache(mq, kpoints_hf, kpoints_folded,
                                            B_inv, B_mat, evals_hf, evecs_hf,
                                            dofs, onebody, twobody, G_k)
+            _accum_ph!(timings, log_lock, "eigen_cache", Int64(time_ns()) - t0)
 
             # Build B(q): needs cache_kq (k+q) and cache_kmq (p-q)
-            B_q = _build_B_matrix(V_k, evecs_hf, cache_kq, cache_kmq,
+            t0 = Int64(time_ns())
+            B_q = _build_B_matrix(V_k!, Vbufs, evecs_hf, cache_kq, cache_kmq,
                                   kpoints_hf, q, triples, Nk)
+            _accum_ph!(timings, log_lock, "build_B", Int64(time_ns()) - t0)
 
             # Check if +q and -q triples match (for D shortcut)
             triples_mq = _build_ph_pairs(evals_hf, cache_kmq.evals, mu;
@@ -791,21 +860,24 @@ function solve_ph_excitations(
             same_pairs = (triples == triples_mq)
             d_method = ""
 
+            t0 = Int64(time_ns())
             if same_pairs
                 # D(q) = -A(-q)* — build A at -q and negate-conjugate
-                A_mq = _build_A_matrix(V_k, evecs_hf, evals_hf, cache_kmq,
+                A_mq = _build_A_matrix(V_k!, Vbufs, evecs_hf, evals_hf, cache_kmq,
                                        kpoints_hf, mq, triples, Nk)
                 D_q = -conj.(A_mq)
                 d_method = "D=-A(-q)*"
             else
                 # Compute D(q) directly with occupation factor
-                D_q = _build_D_matrix(V_k, evecs_hf, evals_hf, cache_kmq,
+                D_q = _build_D_matrix(V_k!, Vbufs, evecs_hf, evals_hf, cache_kmq,
                                       kpoints_hf, q, triples, mu, Nk;
                                       tol_occ=tol_occ)
                 d_method = "D=direct"
             end
+            _accum_ph!(timings, log_lock, "build_D", Int64(time_ns()) - t0)
 
             # ── Bosonic BdG Cholesky method (Shindou et al. PRB 87, 174427, 2013) ──
+            t0 = Int64(time_ns())
             cholesky_ok = false
             M_herm = zeros(ComplexF64, 2M, 2M)
             M_herm[1:M,     1:M]     .=  A
@@ -827,10 +899,6 @@ function solve_ph_excitations(
                 energies[iq]      = F_W.values[perm]
                 wavefunctions[iq] = F_W.vectors[:, perm]
                 cholesky_ok = true
-                verbose && lock(log_lock) do
-                    @printf("  q[%d/%d] = [%s] ... %s, M=%d, done (RPA/BdG-Cholesky)\n",
-                        iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), d_method, M)
-                end
             catch e
                 if !isa(e, PosDefException)
                     rethrow(e)
@@ -838,6 +906,8 @@ function solve_ph_excitations(
             end
 
             # ── Fallback: direct 2M×2M non-Hermitian diagonalization ──
+            fallback_max_imag = 0.0
+            fallback_n_pos    = 0
             if !cholesky_ok
                 RPA_mat = zeros(ComplexF64, 2M, 2M)
                 RPA_mat[1:M,     1:M]     .=  A
@@ -847,19 +917,32 @@ function solve_ph_excitations(
 
                 F_full = eigen(RPA_mat)
                 all_evals = F_full.values
-                max_imag  = maximum(abs.(imag.(all_evals)))
+                fallback_max_imag = maximum(abs.(imag.(all_evals)))
                 pos_idx   = findall(v -> real(v) > 0, all_evals)
                 perm      = pos_idx[sortperm(real.(all_evals[pos_idx]))]
                 energies[iq]      = real.(all_evals[perm])
                 wavefunctions[iq] = F_full.vectors[:, perm]
-                verbose && lock(log_lock) do
+                fallback_n_pos = length(perm)
+            end
+            _accum_ph!(timings, log_lock, "eigen_solve", Int64(time_ns()) - t0)
+
+            verbose && lock(log_lock) do
+                if cholesky_ok
+                    @printf("  q[%d/%d] = [%s] ... %s, M=%d, done (RPA/BdG-Cholesky)\n",
+                        iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), d_method, M)
+                else
                     @printf("  q[%d/%d] = [%s] ... %s, M=%d, done (RPA/direct 2M, max|imag|=%.2e, %d pos modes)\n",
                         iq, Nq, join([@sprintf("%.4f", qi) for qi in q], ", "), d_method,
-                        M, max_imag, length(perm))
+                        M, fallback_max_imag, fallback_n_pos)
                 end
+                flush(stdout)
             end
         end
     end
+
+    total_ns = Int64(time_ns()) - solve_start
+    _accum_ph!(timings, log_lock, "solve_ph", total_ns)
+    verbose && _print_timing_table_ph(timings, solver)
 
     return (
         qpoints       = qpoints,
