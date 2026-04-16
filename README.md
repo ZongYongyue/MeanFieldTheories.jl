@@ -2,6 +2,11 @@
 
 # MeanFieldTheories.jl
 
+[![CI](https://github.com/Quantum-Many-Body/MeanFieldTheories.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Quantum-Many-Body/MeanFieldTheories.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/Quantum-Many-Body/MeanFieldTheories.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Quantum-Many-Body/MeanFieldTheories.jl)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://quantum-many-body.github.io/MeanFieldTheories.jl/dev/)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://quantum-many-body.github.io/MeanFieldTheories.jl/stable/)
+
 **MeanFieldTheories.jl** is a Julia package for studying quantum many-body systems using mean-field theory and related methods. It provides a complete workflow from constructing many-body Hamiltonians to obtaining self-consistent ground states and calculating collective excitation spectra.
 
 See documents: https://Quantum-Many-Body.github.io/MeanFieldTheories.jl/dev
